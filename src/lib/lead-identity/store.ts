@@ -77,6 +77,7 @@ export const useIdentityStore = create<IdentityStore>()(
       leads: [],
       activities: [],
       requests: [],
+      customTags: [],
       currentUser: { id: "u-self", name: "You", role: "agent" },
 
       setCurrentUser: (u) => set({ currentUser: u }),
@@ -108,9 +109,20 @@ export const useIdentityStore = create<IdentityStore>()(
           zone: draft.zone,
           zoneCategory: opts?.zoneCategory,
           quality: opts?.quality ?? null,
+          priority: opts?.priority ?? "normal",
+          tags: opts?.tags ?? [],
+          earliestCheckIn: opts?.earliestCheckIn,
           stage: opts?.stage,
           assigneeId: opts?.assigneeId ?? null,
           assigneeName: opts?.assigneeName ?? null,
+          assignmentHistory: opts?.assigneeId
+            ? [{
+                ts, fromId: null, fromName: null,
+                toId: opts.assigneeId, toName: opts.assigneeName ?? "",
+                byActorId: user.id, byActorName: user.name,
+                reason: "initial assignment",
+              }]
+            : [],
           budget: parseBudgetToNumber(draft.budget),
           moveInDate: draft.moveIn,
           type: draft.type,
