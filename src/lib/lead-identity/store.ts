@@ -227,10 +227,13 @@ export const useIdentityStore = create<IdentityStore>()(
       },
 
       setLifecycleState: (ulid, state) => {
+        const lead = get().leads.find((l) => l.ulid === ulid);
+        const before = lead?.state;
         set((s) => ({
           leads: s.leads.map((l) => l.ulid === ulid ? { ...l, state, updatedAt: nowIso() } : l),
         }));
         get().logActivity(ulid, "state-changed", `State → ${state}`);
+        audit("state-changed", ulid, `State: ${before ?? "—"} → ${state}`, get().currentUser, before, state);
       },
 
       addTag: (ulid, tag) => {
@@ -242,6 +245,7 @@ export const useIdentityStore = create<IdentityStore>()(
             : l),
         }));
         get().logActivity(ulid, "tag-added", `Tag added: ${t}`, { tag: t });
+        audit("tag-added", ulid, `Tag added: ${t}`, get().currentUser, undefined, t);
       },
 
       removeTag: (ulid, tag) => {
@@ -251,6 +255,7 @@ export const useIdentityStore = create<IdentityStore>()(
             : l),
         }));
         get().logActivity(ulid, "tag-removed", `Tag removed: ${tag}`, { tag });
+        audit("tag-removed", ulid, `Tag removed: ${tag}`, get().currentUser, tag, undefined);
       },
 
       setPriority: (ulid, priority) => {
@@ -264,9 +269,12 @@ export const useIdentityStore = create<IdentityStore>()(
         get().logActivity(ulid, "priority-changed",
           `Priority: ${before} → ${priority ?? "normal"}`,
           { before, after: priority });
+        audit("priority-changed", ulid, `Priority: ${before} → ${priority ?? "normal"}`, get().currentUser, before, priority);
       },
 
       setEarliestCheckIn: (ulid, date) => {
+        const lead = get().leads.find((l) => l.ulid === ulid);
+        const before = lead?.earliestCheckIn;
         set((s) => ({
           leads: s.leads.map((l) => l.ulid === ulid
             ? { ...l, earliestCheckIn: date, updatedAt: nowIso() }
@@ -274,6 +282,7 @@ export const useIdentityStore = create<IdentityStore>()(
         }));
         get().logActivity(ulid, "earliest-checkin-set",
           `Earliest check-in: ${date}`, { date });
+        audit("earliest-checkin-set", ulid, `Earliest check-in: ${before ?? "—"} → ${date}`, get().currentUser, before, date);
       },
 
       assignLead: (ulid, toMemberId, toMemberName, reason) => {
@@ -304,6 +313,9 @@ export const useIdentityStore = create<IdentityStore>()(
         get().logActivity(ulid, "assignee-changed",
           `Assigned to ${toMemberName}${reason ? ` (${reason})` : ""}`,
           { toId: toMemberId, fromId: entry.fromId });
+        audit("assignee-changed", ulid,
+          `Assigned: ${entry.fromName ?? "—"} → ${toMemberName}${reason ? ` (${reason})` : ""}`,
+          user, entry.fromName, toMemberName);
       },
 
       createCustomTag: (label, color) => {
