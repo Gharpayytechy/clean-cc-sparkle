@@ -5,6 +5,7 @@ import { persist } from "zustand/middleware";
 import type {
   UnifiedLead, AccessRequest, ActivityEntry, ParsedLeadDraft,
   MatchResult, ActivityKind, LifecycleState,
+  LeadPriority, CustomTag, AssignmentEntry,
 } from "./types";
 import { newUlid, normalizePhoneIN, normalizeEmail, parseBudgetToNumber } from "./normalize";
 import { findMatches } from "./similarity";
@@ -19,6 +20,7 @@ interface IdentityStore {
   leads: UnifiedLead[];
   activities: ActivityEntry[];
   requests: AccessRequest[];
+  customTags: CustomTag[];
   currentUser: CurrentUser;
   setCurrentUser: (u: CurrentUser) => void;
 
@@ -32,6 +34,9 @@ interface IdentityStore {
       ownerId?: string;
       ownerName?: string;
       quality?: import("./types").LeadQuality;
+      priority?: LeadPriority;
+      tags?: string[];
+      earliestCheckIn?: string;
       stage?: string;
       assigneeId?: string | null;
       assigneeName?: string | null;
@@ -48,6 +53,15 @@ interface IdentityStore {
   setSecondaryOwner: (ulid: string, ownerId: string, ownerName: string) => void;
   reassignPrimary: (ulid: string, ownerId: string, ownerName: string, reason: string) => void;
   setLifecycleState: (ulid: string, state: LifecycleState) => void;
+
+  // New actions
+  addTag: (ulid: string, tag: string) => void;
+  removeTag: (ulid: string, tag: string) => void;
+  setPriority: (ulid: string, priority: LeadPriority) => void;
+  setEarliestCheckIn: (ulid: string, date: string) => void;
+  assignLead: (ulid: string, toMemberId: string, toMemberName: string, reason?: string) => void;
+  createCustomTag: (label: string, color: string) => CustomTag;
+  deleteCustomTag: (id: string) => void;
 
   getLead: (ulid: string) => UnifiedLead | undefined;
   getActivities: (ulid: string) => ActivityEntry[];
