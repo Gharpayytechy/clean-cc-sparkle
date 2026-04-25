@@ -150,6 +150,7 @@ export const useIdentityStore = create<IdentityStore>()(
         };
         set((s) => ({ leads: [lead, ...s.leads] }));
         get().logActivity(lead.ulid, "lead-created", `Lead created by ${ownerName}`);
+        audit("lead-created", lead.ulid, `Lead created · ${lead.name}`, user, undefined, lead.name);
         return lead;
       },
 
