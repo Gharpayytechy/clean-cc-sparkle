@@ -5,9 +5,20 @@ import { persist } from "zustand/middleware";
 import type {
   UnifiedLead, AccessRequest, ActivityEntry, ParsedLeadDraft,
   MatchResult, ActivityKind, LifecycleState,
+  LeadPriority, CustomTag, AssignmentEntry,
 } from "./types";
 import { newUlid, normalizePhoneIN, normalizeEmail, parseBudgetToNumber } from "./normalize";
 import { findMatches } from "./similarity";
+import { useAuditLog } from "@/lib/audit-log";
+
+/** Mirror a lead-store mutation into the universal audit log. */
+function audit(action: string, ulid: string, summary: string, actor: { id: string; name: string }, before?: unknown, after?: unknown) {
+  useAuditLog.getState().log({
+    actorId: actor.id, actorName: actor.name,
+    entityType: "lead", entityId: ulid,
+    action, summary, before, after,
+  });
+}
 
 interface CurrentUser {
   id: string;
@@ -19,6 +30,7 @@ interface IdentityStore {
   leads: UnifiedLead[];
   activities: ActivityEntry[];
   requests: AccessRequest[];
+  customTags: CustomTag[];
   currentUser: CurrentUser;
   setCurrentUser: (u: CurrentUser) => void;
 
@@ -32,6 +44,9 @@ interface IdentityStore {
       ownerId?: string;
       ownerName?: string;
       quality?: import("./types").LeadQuality;
+      priority?: LeadPriority;
+      tags?: string[];
+      earliestCheckIn?: string;
       stage?: string;
       assigneeId?: string | null;
       assigneeName?: string | null;
@@ -49,6 +64,15 @@ interface IdentityStore {
   reassignPrimary: (ulid: string, ownerId: string, ownerName: string, reason: string) => void;
   setLifecycleState: (ulid: string, state: LifecycleState) => void;
 
+  // New actions
+  addTag: (ulid: string, tag: string) => void;
+  removeTag: (ulid: string, tag: string) => void;
+  setPriority: (ulid: string, priority: LeadPriority) => void;
+  setEarliestCheckIn: (ulid: string, date: string) => void;
+  assignLead: (ulid: string, toMemberId: string, toMemberName: string, reason?: string) => void;
+  createCustomTag: (label: string, color: string) => CustomTag;
+  deleteCustomTag: (id: string) => void;
+
   getLead: (ulid: string) => UnifiedLead | undefined;
   getActivities: (ulid: string) => ActivityEntry[];
   getRequestsForOwner: (ownerId: string) => AccessRequest[];
@@ -63,6 +87,7 @@ export const useIdentityStore = create<IdentityStore>()(
       leads: [],
       activities: [],
       requests: [],
+      customTags: [],
       currentUser: { id: "u-self", name: "You", role: "agent" },
 
       setCurrentUser: (u) => set({ currentUser: u }),
@@ -94,9 +119,20 @@ export const useIdentityStore = create<IdentityStore>()(
           zone: draft.zone,
           zoneCategory: opts?.zoneCategory,
           quality: opts?.quality ?? null,
+          priority: opts?.priority ?? "normal",
+          tags: opts?.tags ?? [],
+          earliestCheckIn: opts?.earliestCheckIn,
           stage: opts?.stage,
           assigneeId: opts?.assigneeId ?? null,
           assigneeName: opts?.assigneeName ?? null,
+          assignmentHistory: opts?.assigneeId
+            ? [{
+                ts, fromId: null, fromName: null,
+                toId: opts.assigneeId, toName: opts.assigneeName ?? "",
+                byActorId: user.id, byActorName: user.name,
+                reason: "initial assignment",
+              }]
+            : [],
           budget: parseBudgetToNumber(draft.budget),
           moveInDate: draft.moveIn,
           type: draft.type,
@@ -114,6 +150,7 @@ export const useIdentityStore = create<IdentityStore>()(
         };
         set((s) => ({ leads: [lead, ...s.leads] }));
         get().logActivity(lead.ulid, "lead-created", `Lead created by ${ownerName}`);
+        audit("lead-created", lead.ulid, `Lead created · ${lead.name}`, user, undefined, lead.name);
         return lead;
       },
 
@@ -190,10 +227,112 @@ export const useIdentityStore = create<IdentityStore>()(
       },
 
       setLifecycleState: (ulid, state) => {
+        const lead = get().leads.find((l) => l.ulid === ulid);
+        const before = lead?.state;
         set((s) => ({
           leads: s.leads.map((l) => l.ulid === ulid ? { ...l, state, updatedAt: nowIso() } : l),
         }));
         get().logActivity(ulid, "state-changed", `State → ${state}`);
+        audit("state-changed", ulid, `State: ${before ?? "—"} → ${state}`, get().currentUser, before, state);
+      },
+
+      addTag: (ulid, tag) => {
+        const t = tag.trim();
+        if (!t) return;
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid && !(l.tags ?? []).includes(t)
+            ? { ...l, tags: [...(l.tags ?? []), t], updatedAt: nowIso() }
+            : l),
+        }));
+        get().logActivity(ulid, "tag-added", `Tag added: ${t}`, { tag: t });
+        audit("tag-added", ulid, `Tag added: ${t}`, get().currentUser, undefined, t);
+      },
+
+      removeTag: (ulid, tag) => {
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid
+            ? { ...l, tags: (l.tags ?? []).filter((x) => x !== tag), updatedAt: nowIso() }
+            : l),
+        }));
+        get().logActivity(ulid, "tag-removed", `Tag removed: ${tag}`, { tag });
+        audit("tag-removed", ulid, `Tag removed: ${tag}`, get().currentUser, tag, undefined);
+      },
+
+      setPriority: (ulid, priority) => {
+        const lead = get().leads.find((l) => l.ulid === ulid);
+        const before = lead?.priority ?? "normal";
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid
+            ? { ...l, priority, updatedAt: nowIso() }
+            : l),
+        }));
+        get().logActivity(ulid, "priority-changed",
+          `Priority: ${before} → ${priority ?? "normal"}`,
+          { before, after: priority });
+        audit("priority-changed", ulid, `Priority: ${before} → ${priority ?? "normal"}`, get().currentUser, before, priority);
+      },
+
+      setEarliestCheckIn: (ulid, date) => {
+        const lead = get().leads.find((l) => l.ulid === ulid);
+        const before = lead?.earliestCheckIn;
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid
+            ? { ...l, earliestCheckIn: date, updatedAt: nowIso() }
+            : l),
+        }));
+        get().logActivity(ulid, "earliest-checkin-set",
+          `Earliest check-in: ${date}`, { date });
+        audit("earliest-checkin-set", ulid, `Earliest check-in: ${before ?? "—"} → ${date}`, get().currentUser, before, date);
+      },
+
+      assignLead: (ulid, toMemberId, toMemberName, reason) => {
+        const user = get().currentUser;
+        const lead = get().leads.find((l) => l.ulid === ulid);
+        if (!lead) return;
+        const entry: AssignmentEntry = {
+          ts: nowIso(),
+          fromId: lead.assigneeId ?? null,
+          fromName: lead.assigneeName ?? null,
+          toId: toMemberId,
+          toName: toMemberName,
+          byActorId: user.id,
+          byActorName: user.name,
+          reason,
+        };
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid
+            ? {
+                ...l,
+                assigneeId: toMemberId,
+                assigneeName: toMemberName,
+                assignmentHistory: [entry, ...(l.assignmentHistory ?? [])],
+                updatedAt: nowIso(),
+              }
+            : l),
+        }));
+        get().logActivity(ulid, "assignee-changed",
+          `Assigned to ${toMemberName}${reason ? ` (${reason})` : ""}`,
+          { toId: toMemberId, fromId: entry.fromId });
+        audit("assignee-changed", ulid,
+          `Assigned: ${entry.fromName ?? "—"} → ${toMemberName}${reason ? ` (${reason})` : ""}`,
+          user, entry.fromName, toMemberName);
+      },
+
+      createCustomTag: (label, color) => {
+        const user = get().currentUser;
+        const tag: CustomTag = {
+          id: `tag_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          label: label.trim(),
+          color,
+          createdBy: user.id,
+          ts: nowIso(),
+        };
+        set((s) => ({ customTags: [tag, ...s.customTags] }));
+        return tag;
+      },
+
+      deleteCustomTag: (id) => {
+        set((s) => ({ customTags: s.customTags.filter((t) => t.id !== id) }));
       },
 
       getLead: (ulid) => get().leads.find((l) => l.ulid === ulid),

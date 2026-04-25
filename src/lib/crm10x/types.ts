@@ -93,6 +93,7 @@ export interface CallRecord {
   language?: LangPref;
   bestCallTime?: string;
   notes: string;
+  transcript?: string;     // optional voice-to-text transcript (Phase 5)
 }
 
 /** Pre/post visit intelligence. */

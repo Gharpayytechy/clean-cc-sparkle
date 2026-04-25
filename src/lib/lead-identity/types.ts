@@ -14,6 +14,26 @@ export type LifecycleState =
 export type MatchType = "exact" | "strong" | "possible" | "new";
 
 export type LeadQuality = "hot" | "good" | "bad" | null;
+export type LeadPriority = "super-hot" | "hot" | "normal" | null;
+
+export interface AssignmentEntry {
+  ts: string;
+  fromId: string | null;
+  fromName: string | null;
+  toId: string;
+  toName: string;
+  byActorId: string;
+  byActorName: string;
+  reason?: string;
+}
+
+export interface CustomTag {
+  id: string;
+  label: string;
+  color: string;             // hex like #f97316
+  createdBy: string;
+  ts: string;
+}
 
 export interface UnifiedLead {
   ulid: string;                 // Universal Lead ID
@@ -28,9 +48,13 @@ export interface UnifiedLead {
   zone: string;                 // South / East / North / West / Central / "" or categorical bucket
   zoneCategory?: string;        // editor-chosen bucket (e.g. "KORA CORE")
   quality?: LeadQuality;        // hot / good / bad
+  priority?: LeadPriority;      // super-hot = ASAP same-day-close
+  tags?: string[];              // custom tag labels (WhatsApp-style)
+  earliestCheckIn?: string;     // ISO date — earliest the lead CAN move in
   stage?: string;               // Lead stage label (MYT [TENANT], etc.)
   assigneeId?: string | null;
   assigneeName?: string | null;
+  assignmentHistory?: AssignmentEntry[];
   budget: number;
   moveInDate: string;
   type: string;                 // Student / Working / etc
@@ -85,7 +109,12 @@ export type ActivityKind =
   | "note-added"
   | "state-changed"
   | "reactivated"
-  | "revived";
+  | "revived"
+  | "tag-added"
+  | "tag-removed"
+  | "priority-changed"
+  | "assignee-changed"
+  | "earliest-checkin-set";
 
 export interface ActivityEntry {
   id: string;
