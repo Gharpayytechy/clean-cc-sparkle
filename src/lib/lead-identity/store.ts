@@ -222,6 +222,96 @@ export const useIdentityStore = create<IdentityStore>()(
         get().logActivity(ulid, "state-changed", `State → ${state}`);
       },
 
+      addTag: (ulid, tag) => {
+        const t = tag.trim();
+        if (!t) return;
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid && !(l.tags ?? []).includes(t)
+            ? { ...l, tags: [...(l.tags ?? []), t], updatedAt: nowIso() }
+            : l),
+        }));
+        get().logActivity(ulid, "tag-added", `Tag added: ${t}`, { tag: t });
+      },
+
+      removeTag: (ulid, tag) => {
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid
+            ? { ...l, tags: (l.tags ?? []).filter((x) => x !== tag), updatedAt: nowIso() }
+            : l),
+        }));
+        get().logActivity(ulid, "tag-removed", `Tag removed: ${tag}`, { tag });
+      },
+
+      setPriority: (ulid, priority) => {
+        const lead = get().leads.find((l) => l.ulid === ulid);
+        const before = lead?.priority ?? "normal";
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid
+            ? { ...l, priority, updatedAt: nowIso() }
+            : l),
+        }));
+        get().logActivity(ulid, "priority-changed",
+          `Priority: ${before} → ${priority ?? "normal"}`,
+          { before, after: priority });
+      },
+
+      setEarliestCheckIn: (ulid, date) => {
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid
+            ? { ...l, earliestCheckIn: date, updatedAt: nowIso() }
+            : l),
+        }));
+        get().logActivity(ulid, "earliest-checkin-set",
+          `Earliest check-in: ${date}`, { date });
+      },
+
+      assignLead: (ulid, toMemberId, toMemberName, reason) => {
+        const user = get().currentUser;
+        const lead = get().leads.find((l) => l.ulid === ulid);
+        if (!lead) return;
+        const entry: AssignmentEntry = {
+          ts: nowIso(),
+          fromId: lead.assigneeId ?? null,
+          fromName: lead.assigneeName ?? null,
+          toId: toMemberId,
+          toName: toMemberName,
+          byActorId: user.id,
+          byActorName: user.name,
+          reason,
+        };
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid
+            ? {
+                ...l,
+                assigneeId: toMemberId,
+                assigneeName: toMemberName,
+                assignmentHistory: [entry, ...(l.assignmentHistory ?? [])],
+                updatedAt: nowIso(),
+              }
+            : l),
+        }));
+        get().logActivity(ulid, "assignee-changed",
+          `Assigned to ${toMemberName}${reason ? ` (${reason})` : ""}`,
+          { toId: toMemberId, fromId: entry.fromId });
+      },
+
+      createCustomTag: (label, color) => {
+        const user = get().currentUser;
+        const tag: CustomTag = {
+          id: `tag_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          label: label.trim(),
+          color,
+          createdBy: user.id,
+          ts: nowIso(),
+        };
+        set((s) => ({ customTags: [tag, ...s.customTags] }));
+        return tag;
+      },
+
+      deleteCustomTag: (id) => {
+        set((s) => ({ customTags: s.customTags.filter((t) => t.id !== id) }));
+      },
+
       getLead: (ulid) => get().leads.find((l) => l.ulid === ulid),
       getActivities: (ulid) => get().activities.filter((a) => a.ulid === ulid),
       getRequestsForOwner: (ownerId) =>
