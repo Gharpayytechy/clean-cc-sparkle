@@ -35,6 +35,22 @@ export interface CustomTag {
   ts: string;
 }
 
+export type LeadPhaseNum = 1 | 2 | 3 | 4;
+export type LeadStageTag =
+  | "NEW" | "CONTACTED" | "TOUR_SCHEDULED" | "TOURED"
+  | "NEGOTIATING" | "CLOSED" | "COLD" | "LOST";
+export type InterestLevel = "HOT" | "WARM" | "COLD" | null;
+export type ObjectionTagStr =
+  | "PRICE-HIGH" | "LOCATION-MISMATCH" | "COMPARING" | "FAMILY-APPROVAL"
+  | "TIMING" | "AMENITY-GAP" | "UNRESPONSIVE" | "SWITCHED-PLATFORM"
+  | "PLANS-CHANGED" | "UNKNOWN";
+
+export interface LeadAnchors {
+  leadDate: string;
+  tourDate?: string;
+  checkInDate?: string;
+}
+
 export interface UnifiedLead {
   ulid: string;                 // Universal Lead ID
   name: string;
@@ -69,6 +85,21 @@ export interface UnifiedLead {
   updatedAt: string;
   lastActivityAt: string;
   rawSource?: string;           // original pasted text
+  // ── Date-anchored execution engine ──
+  anchors?: LeadAnchors;
+  phase?: LeadPhaseNum;
+  stageTag?: LeadStageTag;
+  interestLevel?: InterestLevel;
+  primaryObjection?: ObjectionTagStr | null;
+  replied?: boolean;
+  lastContactAt?: string;
+  noShowFlag?: boolean;
+  noShowCount?: number;
+  followUpCount?: number;
+  propertyName?: string;
+  managerEscalated?: boolean;
+  lostReason?: string;
+  closedReason?: string;
 }
 
 export interface OwnershipHistoryEntry {
