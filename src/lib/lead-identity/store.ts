@@ -349,6 +349,140 @@ export const useIdentityStore = create<IdentityStore>()(
         set((s) => ({ customTags: s.customTags.filter((t) => t.id !== id) }));
       },
 
+      bookTour: (ulid, tourDateIso, propertyName) => {
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid ? {
+            ...l,
+            phase: 2,
+            stageTag: "TOUR_SCHEDULED",
+            state: "visit-scheduled",
+            anchors: { ...(l.anchors ?? { leadDate: l.createdAt }), tourDate: tourDateIso },
+            propertyName: propertyName ?? l.propertyName,
+            noShowFlag: false,
+            updatedAt: nowIso(),
+          } : l),
+        }));
+        get().logActivity(ulid, "visit-scheduled", `Tour booked for ${new Date(tourDateIso).toLocaleString()}`);
+        audit("tour-booked", ulid, `Tour booked → ${tourDateIso}`, get().currentUser, undefined, tourDateIso);
+      },
+
+      rescheduleTour: (ulid, newTourDateIso) => {
+        const lead = get().leads.find((l) => l.ulid === ulid);
+        const before = lead?.anchors?.tourDate;
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid ? {
+            ...l,
+            anchors: { ...(l.anchors ?? { leadDate: l.createdAt }), tourDate: newTourDateIso },
+            noShowFlag: false,
+            updatedAt: nowIso(),
+          } : l),
+        }));
+        get().logActivity(ulid, "visit-scheduled", `Tour rescheduled → ${new Date(newTourDateIso).toLocaleString()}`);
+        audit("tour-rescheduled", ulid, `Tour: ${before ?? "—"} → ${newTourDateIso}`, get().currentUser, before, newTourDateIso);
+      },
+
+      markNoShow: (ulid) => {
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid ? {
+            ...l, noShowFlag: true, noShowCount: (l.noShowCount ?? 0) + 1, updatedAt: nowIso(),
+          } : l),
+        }));
+        get().logActivity(ulid, "note-added", "Marked no-show");
+        audit("no-show", ulid, "Marked no-show", get().currentUser);
+      },
+
+      markToured: (ulid, interest) => {
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid ? {
+            ...l,
+            phase: 3,
+            stageTag: "TOURED",
+            state: "visit-done",
+            interestLevel: interest ?? l.interestLevel ?? null,
+            noShowFlag: false,
+            updatedAt: nowIso(),
+          } : l),
+        }));
+        get().logActivity(ulid, "visit-done", `Tour completed${interest ? ` · ${interest}` : ""}`);
+        audit("toured", ulid, `Toured · ${interest ?? "—"}`, get().currentUser);
+      },
+
+      setInterestLevel: (ulid, level) => {
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid ? { ...l, interestLevel: level, updatedAt: nowIso() } : l),
+        }));
+        get().logActivity(ulid, "note-added", `Interest: ${level ?? "—"}`);
+      },
+
+      setObjection: (ulid, tag) => {
+        const lead = get().leads.find((l) => l.ulid === ulid);
+        const before = lead?.primaryObjection ?? null;
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid ? { ...l, primaryObjection: tag, updatedAt: nowIso() } : l),
+        }));
+        get().logActivity(ulid, "note-added", `Objection: ${tag}`);
+        audit("objection-set", ulid, `Objection: ${before ?? "—"} → ${tag}`, get().currentUser, before, tag);
+      },
+
+      setCheckInDate: (ulid, iso) => {
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid ? {
+            ...l,
+            anchors: { ...(l.anchors ?? { leadDate: l.createdAt }), checkInDate: iso },
+            updatedAt: nowIso(),
+          } : l),
+        }));
+        get().logActivity(ulid, "note-added", `Check-in date set: ${iso}`);
+      },
+
+      recordContact: (ulid, channel) => {
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid ? {
+            ...l,
+            lastContactAt: nowIso(),
+            followUpCount: (l.followUpCount ?? 0) + 1,
+            stageTag: l.stageTag === "NEW" ? "CONTACTED" : l.stageTag,
+            updatedAt: nowIso(),
+          } : l),
+        }));
+        const kindMap = { wa: "whatsapp-sent", call: "call-logged", email: "note-added", visit: "visit-done" } as const;
+        get().logActivity(ulid, kindMap[channel] as ActivityKind, `Contact via ${channel}`);
+      },
+
+      recordReply: (ulid) => {
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid ? { ...l, replied: true, updatedAt: nowIso() } : l),
+        }));
+        get().logActivity(ulid, "note-added", "Lead replied");
+      },
+
+      markClosed: (ulid, reason) => {
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid ? {
+            ...l, phase: 4, stageTag: "CLOSED", state: "converted",
+            closedReason: reason, updatedAt: nowIso(),
+          } : l),
+        }));
+        get().logActivity(ulid, "state-changed", `CLOSED${reason ? ` · ${reason}` : ""}`);
+        audit("closed", ulid, `Lead closed${reason ? ` · ${reason}` : ""}`, get().currentUser);
+      },
+
+      markLost: (ulid, reason) => {
+        const lead = get().leads.find((l) => l.ulid === ulid);
+        if (!lead?.primaryObjection) {
+          throw new Error("Cannot mark LOST without a primary objection tag.");
+        }
+        set((s) => ({
+          leads: s.leads.map((l) => l.ulid === ulid ? {
+            ...l, phase: 4, stageTag: "LOST", state: "dropped",
+            lostReason: reason, updatedAt: nowIso(),
+          } : l),
+        }));
+        get().logActivity(ulid, "state-changed", `LOST · ${reason}`);
+        audit("lost", ulid, `Lead lost · ${reason}`, get().currentUser);
+      },
+
+
       getLead: (ulid) => get().leads.find((l) => l.ulid === ulid),
       getActivities: (ulid) => get().activities.filter((a) => a.ulid === ulid),
       getRequestsForOwner: (ownerId) =>
