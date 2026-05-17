@@ -73,6 +73,20 @@ interface IdentityStore {
   createCustomTag: (label: string, color: string) => CustomTag;
   deleteCustomTag: (id: string) => void;
 
+  // ── Date-anchored execution engine ──
+  bookTour: (ulid: string, tourDateIso: string, propertyName?: string) => void;
+  rescheduleTour: (ulid: string, newTourDateIso: string) => void;
+  markNoShow: (ulid: string) => void;
+  markToured: (ulid: string, interest?: import("./types").InterestLevel) => void;
+  setInterestLevel: (ulid: string, level: import("./types").InterestLevel) => void;
+  setObjection: (ulid: string, tag: import("./types").ObjectionTagStr) => void;
+  setCheckInDate: (ulid: string, iso: string) => void;
+  recordContact: (ulid: string, channel: "wa" | "call" | "email" | "visit") => void;
+  recordReply: (ulid: string) => void;
+  markClosed: (ulid: string, reason?: string) => void;
+  /** Throws if no objection tag set — Escalation Matrix rule. */
+  markLost: (ulid: string, reason: string) => void;
+
   getLead: (ulid: string) => UnifiedLead | undefined;
   getActivities: (ulid: string) => ActivityEntry[];
   getRequestsForOwner: (ownerId: string) => AccessRequest[];
