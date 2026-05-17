@@ -80,6 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     hr: [
       { to: "/coach", label: "Coach", icon: Sparkles, accent: true },
       { to: "/today", label: "Today", icon: Sun, badge: queue.length },
+      { to: "/execution", label: "Execution", icon: Zap, accent: true },
       { to: "/calendar", label: "Calendar", icon: Calendar },
       { to: "/myt", label: "HR Tower", icon: Home },
       { to: "/myt/war-room", label: "War Room", icon: Swords },
@@ -106,6 +107,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     "flow-ops": [
       { to: "/coach", label: "Coach", icon: Sparkles, accent: true },
       { to: "/today", label: "Today", icon: Sun, badge: queue.length },
+      { to: "/execution", label: "Execution", icon: Zap, accent: true },
       { to: "/inbox", label: "Inbox", icon: Inbox },
       { to: "/myt/flow-ops", label: "Flow Ops", icon: LayoutDashboard },
       { to: "/calendar", label: "Calendar", icon: Calendar },
@@ -129,6 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     tcm: [
       { to: "/coach", label: "Coach", icon: Sparkles, accent: true },
       { to: "/today", label: "Today", icon: Sun, badge: queue.length },
+      { to: "/execution", label: "Execution", icon: Zap, accent: true },
       { to: "/myt/tcm", label: "TCM Desk", icon: Target },
       { to: "/calendar", label: "Calendar", icon: Calendar },
       { to: "/myt/schedule", label: "Schedule Tour", icon: CalendarPlus },

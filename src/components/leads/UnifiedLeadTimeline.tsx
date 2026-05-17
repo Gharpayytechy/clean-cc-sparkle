@@ -97,7 +97,7 @@ export function UnifiedLeadTimeline({ ulid, legacyLeadId, className, limit = 60 
     messages.filter((m) => m.leadId === leadKey).forEach((m) => {
       out.push({
         id: m.id, ts: m.ts, kind: "whatsapp", icon: MessageSquare,
-        actor: m.sentBy ?? "—",
+        actor: m.loggedBy ?? "—",
         text: `WhatsApp sent${m.replied ? " · replied" : ""}${m.bookedAfter ? " · booking attributed" : ""}`,
         tone: m.bookedAfter ? "good" : m.replied ? "good" : "neutral",
       });
@@ -119,7 +119,7 @@ export function UnifiedLeadTimeline({ ulid, legacyLeadId, className, limit = 60 
       out.push({
         id: c.id, ts: c.ts, kind: "status", icon: CheckCircle2,
         actor: "—",
-        text: `Commitment · ${c.commitment} (${c.status})`,
+        text: `Commitment · "${c.exactWords}" by ${c.decisionBy} (${c.status})`,
         tone: c.status === "kept" ? "good" : c.status === "missed" ? "bad" : "neutral",
       });
     });

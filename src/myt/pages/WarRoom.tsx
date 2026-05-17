@@ -7,6 +7,7 @@ import { TrendingUp, AlertTriangle, Target, Zap, Crosshair } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, BarChart, Bar, Cell } from 'recharts';
 import { cn } from '@/lib/utils';
 import { GlueFeed } from '@/components/GlueFeed';
+import { ManagerMorningReview } from '@/components/execution/ManagerMorningReview';
 
 export default function WarRoom() {
   const { tours, leads, rooms, blocks, bookings } = useAppState();
@@ -187,6 +188,7 @@ export default function WarRoom() {
         <div className="text-[10px] uppercase tracking-wide text-primary font-semibold">Immediate Action Lever</div>
         <div className="text-base md:text-lg font-bold text-foreground mt-1">{data.action.text} →</div>
       </a>
+      <ManagerMorningReview />
       <GlueFeed limit={25} title="Closed-loop activity · War Room" />
     </div>
   );
