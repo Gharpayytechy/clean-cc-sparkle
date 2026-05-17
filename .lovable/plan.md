@@ -1,195 +1,174 @@
-# One-Shot Build Plan: Sidebar Slim + Persona Today + Consolidations + Lead Power Features
+# 100X Date-Anchored Lead Execution Engine
 
-This plan ships **all 8 architecture items + 4 lead-data features** in a single coordinated pass. I've grouped the work into 5 phases that share infrastructure (types, stores, components) so we don't redo work.
+Turn the CRM from a database into a **decision engine**. Every lead is always in exactly one Phase (1–4), on a known Day offset from an Anchor (L / T / CI), with exactly one Next Action that is either scheduled, due, or breached. TCMs execute. Managers review gaps. The system never lets a lead exist without a Next Action.
+
+This plan ships the full spec in coordinated layers — schema, engine, scripts, UI, manager dashboard, escalations — wired into the existing `lead-identity` store, `crm10x` store, and audit log.
 
 ---
 
-## Phase 1 — Lead Schema & Store Power-Ups (foundation for everything else)
+## Layer 1 — Anchors & Phase Schema
 
-**Goal:** Extend `UnifiedLead` so the rest of the UI has data to render.
+**`src/lib/lead-identity/types.ts`** — extend `UnifiedLead`:
+- `anchors: { leadDate: string; tourDate?: string; checkInDate?: string }`
+- `phase: 1 | 2 | 3 | 4`
+- `stage: "NEW" | "CONTACTED" | "TOUR_SCHEDULED" | "TOURED" | "NEGOTIATING" | "CLOSED" | "COLD" | "LOST"`
+- `interestLevel: "HOT" | "WARM" | "COLD" | null` (post-tour)
+- `primaryObjection: ObjectionTag | null` — enum below, free text rejected
+- `nextAction: { id; kind; dueAt; templateId; payload } | null`
+- `noShowCount`, `followUpCount`, `lastContactAt`, `managerEscalated`
+- `closedReason?`, `lostReason?`
 
-### 1.1 Extend `src/lib/lead-identity/types.ts`
-Add to `UnifiedLead`:
-- `tags: string[]` — free-form WhatsApp-label-style tags (color-coded)
-- `priority: "super-hot" | "hot" | "normal" | null` — "super-hot" = ASAP same-day-close
-- `earliestCheckIn?: string` — ISO date, separate from `moveInDate` (preferred). Earliest = "I can move in by X if needed"
-- `assignmentHistory: { ts, fromId, toId, byActorId, reason }[]`
-- New activity kinds: `tag-added`, `tag-removed`, `priority-changed`, `assignee-changed`, `earliest-checkin-set`
+New enum `ObjectionTag`: `PRICE-HIGH | LOCATION-MISMATCH | COMPARING | FAMILY-APPROVAL | TIMING | AMENITY-GAP | UNRESPONSIVE | SWITCHED-PLATFORM | PLANS-CHANGED | UNKNOWN`.
 
-Add new top-level type:
-```ts
-export interface CustomTag { id: string; label: string; color: string; createdBy: string; ts: string; }
+---
+
+## Layer 2 — Script Library
+
+**New `src/lib/crm10x/scripts.ts`** — encodes every message from the spec as templates with variables (`{{name}}`, `{{area}}`, `{{property}}`, `{{time}}`, `{{address}}`):
+
+```
+type ScriptTemplate = {
+  id: string;             // "L0-1A-standard-opener"
+  phase: 1|2|3|4;
+  dayOffset: number;      // L+0, T-2, CI-7 → 0, -2, -7
+  anchor: "L"|"T"|"CI";
+  window?: { fromHour: number; toHour: number };  // 9.5–10.5 for "9:30-10:30 AM"
+  condition?: "no-reply"|"replied"|"hot"|"warm"|"cold"|"price"|"location"|"family"|"size";
+  body: string;
+  followUpKind: "message"|"call"|"visit-confirm"|"close-attempt"|"escalation";
+};
 ```
 
-### 1.2 Extend `src/lib/lead-identity/store.ts`
-New actions (all log to activity feed):
-- `addTag(ulid, tag)` / `removeTag(ulid, tag)`
-- `setPriority(ulid, priority)`
-- `setEarliestCheckIn(ulid, date)`
-- `assignLead(ulid, toMemberId, toMemberName, reason?)` — pushes `assignmentHistory` and updates `assigneeId/Name`
-- `customTags: CustomTag[]` slice + `createCustomTag(label, color)` / `deleteCustomTag(id)`
-
-### 1.3 Update `QuickAddLeadPanel` & `DirectLeadForm`
-Add fields: tag picker (with "create new"), priority chip row (🚨 Super Hot / 🔥 Hot / Normal), earliest check-in date input, assignee dropdown (reads from team/personas).
+Seed every script verbatim from the brief: L+0 1A/1B/1C, L+0 shortlist, L+0 no-reply, L+0 EOD, L+1 morning (replied / never), L+1 afternoon + 4 objection rebuttals, L+1 evening, L+2 morning/afternoon, L+3+ cold, T-confirm, T-2, T-1, T-0 morning, T-0 no-show 30m/3h, T+0 went-well/unsure/comparing, T+0 EOD, T+1 HOT/WARM/COLD, T+1 objection × 4, T+2 morning/evening, T+3 final, CI-30/21/14/10/7/5/3/1.
 
 ---
 
-## Phase 2 — Universal Audit Log + "What Changed" Strip
+## Layer 3 — The Decision Engine
 
-**Goal:** Every mutation across the app emits an entry; a strip on every detail view shows the last 5.
+**New `src/lib/crm10x/execution-engine.ts`** — pure functions, no React:
 
-### 2.1 New `src/lib/audit-log.ts`
-Zustand store, persisted, with:
-```ts
-type AuditEntry = { id; ts; actorId; actorName; entityType: "lead"|"tour"|"property"|"booking"|...; entityId; action; before?; after?; summary };
-logAudit(entry)  // append
-getRecentFor(entityType, entityId, limit)
-getRecentForActor(actorId, limit)
+```
+computeNextAction(lead, now): NextAction | null
+  → returns { kind, dueAt, templateId, reason }
+  → uses phase + days-since-anchor + lastContactAt + replied flag
+advancePhase(lead, event): partial<UnifiedLead>
+  → events: "first-contact"|"replied"|"tour-booked"|"tour-rescheduled"
+            |"no-show"|"toured"|"closed"|"lost"|"cold-out"
+materializeAction(lead, template, now): ActionTicket
+breachState(lead, now): "ok"|"due"|"breached"|"escalated"
 ```
 
-### 2.2 New `src/components/audit/WhatChangedStrip.tsx`
-Collapsed: "3 changes today · last by Aarav 12m ago"  
-Expanded: timeline list with diff badges (e.g. "priority: hot → super-hot").
+Rules baked in:
+- 15-min law: NEW lead with no contact → breached at `leadDate + 15m` → manager alert.
+- L+2 no tour → manager review flag.
+- T-0 no-show + 1h no follow-up → TCM warning.
+- TOURED >3d with no close or escalation → manager takeover.
+- CI-7 with no activity in 10d → manager review.
+- LOST without `primaryObjection` → engine rejects the mutation (store action throws).
+- Reschedule resets Phase 2 clock from new `T-2`.
 
-Mount on: lead drawer, tour detail, property detail, owner home.
-
-### 2.3 Wire emit calls
-Patch existing `lead-identity/store.ts`, `crm10x/store.ts`, `myt/lib/app-context.tsx` mutations to also call `logAudit()`.
-
----
-
-## Phase 3 — Unified Lead Timeline (single component, 7 stores)
-
-**Goal:** Replace the scattered per-store activity displays with one component.
-
-### 3.1 New `src/components/leads/UnifiedLeadTimeline.tsx`
-Reads from:
-1. `useLeadIdentity` activity feed
-2. `useCRM10x.calls` (call attempts)
-3. `useCRM10x.objections`
-4. `useCRM10x.commitments`
-5. `useCRM10x.messageOutcomes` (WhatsApp sends + replies + booking attribution)
-6. `useCRM10x.visits`
-7. `useAuditLog` entries
-8. (bonus) `useApp.tours` + `bookings` for the lead's tours
-
-Merges, sorts desc by `ts`, renders icon + actor + summary + relative time. Filter chips: All / Calls / WhatsApp / Visits / Status / Tags. Used in lead drawer (replaces existing partial timeline) + new "Lead 360" tab.
+Recompute on every store mutation + via `useNow()` tick (already in `src/hooks/use-now.ts`) every 60s.
 
 ---
 
-## Phase 4 — Sidebar Slim, Persona Today, Dashboard Consolidation
+## Layer 4 — Store Wiring
 
-### 4.1 Slim sidebars to ≤8 + Pinned + More
-Refactor `src/components/AppShell.tsx`:
+**`src/lib/lead-identity/store.ts`** — new actions, all audit-logged:
+- `setAnchors`, `bookTour`, `rescheduleTour`, `markNoShow`, `markToured`, `setInterestLevel`, `setObjection`, `markClosed`, `markLost(reason, tag)`, `recordContact(channel)`
+- After every mutation: call `computeNextAction()` and persist on the lead.
+- `markLost` throws if no objection tag → satisfies escalation matrix.
 
-New per-role pinned (≤8):
-- **HR:** Coach · Today · War Room (merged) · Funnel · Team · Supply Hub · Revenue · Inbox
-- **Flow-Ops:** Coach · Today · Inbox · Flow Ops · MYT Leads · Schedule · Supply Hub · Marketplace
-- **TCM:** Coach · Today · TCM Desk · My Tours · Follow-ups · Handoffs · MYT Leads · Marketplace
-- **Owner:** Home · Approve (consolidated) · Insights · Inbox
-
-Add `pinnedByRole` (persisted in zustand) so users can pin/unpin from the **More** drawer. "More" opens a sheet listing all remaining routes grouped by section, with a search input.
-
-### 4.2 Persona-driven Today (`src/routes/today.tsx`)
-New `src/components/today/PersonaTodayCards.tsx` reads `personas.ts` for the active user (`role` + `currentTcmId` etc). Cards generated from:
-- `arc` → "Storyline today" card with progress
-- `weakSpots[0]` → "Coach watch" card (gentle nudge using `coachTone`)
-- `signature` → personalised greeting at top
-- `missionCap` → progress ring "X / cap items cleared today"
-- `motivators[]` → reward copy when goals hit
-- `channels[0]` → default action button (e.g. WhatsApp vs Phone)
-
-Falls back gracefully when no persona matches.
-
-### 4.3 HR War Room consolidation
-Merge `/manager`, `/myt`, `/myt/war-room` into one route at `/myt/war-room` with tabs:
-- **Pulse** (today numbers — from current ManagerDashboard "today's pulse")
-- **Funnel** (from ManagerDashboard funnel + WarRoom leak point)
-- **Forecast** (WarRoom 7-day curve + revenue gap)
-- **Team** (ManagerDashboard agent comparison)
-- **Red flags** (objections + reassignments)
-
-Old routes redirect to the appropriate tab via `Navigate` with `?tab=` param. `/myt` stays as a lighter HR Tower for ops.
-
-### 4.4 Owner simplification
-Collapse 7 owner routes → 3:
-- `/owner` **Home** — KPIs, urgent items, persona-tailored hero (using owner personas in `personas.ts`)
-- `/owner/approve` **Approve** — merges `blocks` + `visits` + `rooms` updates as one inbox-style queue
-- `/owner/insights` **Insights** — yields/occupancy + media health (absorbs `inventory` + `media`)
-
-Old routes redirect.
+**`src/lib/crm10x/store.ts`** — add `actionTickets: ActionTicket[]` slice (queue of due/upcoming actions per TCM), `completeTicket`, `snoozeTicket(reason)`.
 
 ---
 
-## Phase 5 — TCM Call/Voice Logger + Flow-Ops Auto-Balance + Dup Merge Inbox
+## Layer 5 — TCM Execution UI
 
-### 5.1 TCM call+voice logger
-New `src/components/tcm/CallVoiceLogger.tsx`:
-- One-click "Call" button on lead row → opens `tel:` link AND immediately creates a `CallRecord` via `useCRM10x.logCall` (status=initiated, ts=now)
-- After call: prompt with mic button → uses **Web Speech API** (`SpeechRecognition`) to transcribe in-browser (no external dep)
-- Transcript stored on the call record (`note` field — extend `CallRecord` if needed)
-- Outcome chips: Connected / Voicemail / Busy / No-answer + objection chip-row (auto-creates `ObjectionRecord`)
-- Hooks into `WhatChangedStrip` + `UnifiedLeadTimeline`
+**New `src/components/execution/NextActionCard.tsx`** — the atomic unit. Shows:
+- Phase badge + Day label (`L+1 · Afternoon` or `T-2`)
+- Lead name + anchor countdowns (`Tour in 2d` / `Check-in in 14d`)
+- The exact script body with variables filled
+- Buttons: **Send WhatsApp** (deep-link), **Mark Sent**, **Log Reply**, **Snooze**, **Escalate**
+- Objection chip row (one-tap tag)
+- Inline "Book Tour" / "Reschedule" / "Mark No-show" depending on phase
 
-Browser-support fallback: text area if `webkitSpeechRecognition` missing.
+**New `src/routes/execution.tsx`** — TCM's home queue (`/execution`):
+- Tabs: **Due Now** · **Today** · **Tomorrow** · **Breached** · **Cold drip**
+- Sorted by breach state then `dueAt`
+- Header: "X actions due, Y breached" with the 15-min law countdown for any fresh NEW lead
+- Bulk send for templates that don't need personalization beyond `{{name}}`
 
-### 5.2 Flow-Ops auto-balance panel
-New `src/components/flow-ops/AutoBalancePanel.tsx` on `/myt/flow-ops`:
-- Reads `useCRM10x.assignments` + `useApp.leads` + TCM list
-- Computes load per TCM (active leads ÷ avg cap)
-- Suggests rebalance moves (drag overloaded → underloaded), one-click "Apply" → calls new `assignLead` action
-- "Auto-distribute N unclaimed" button using existing `routing.ts` if present, else round-robin
-
-### 5.3 Duplicate merge inbox
-New `src/components/flow-ops/DuplicateMergeInbox.tsx`:
-- Surfaces existing `useCRM10x.merges` + runs `findMatches` from lead-identity over current leads to find candidates not yet merged
-- Shows pairs side-by-side with score + reasons → "Merge" button calls existing `mergeDuplicates` action and consolidates activity
-- Mounted as a tab on `/myt/flow-ops`
+**Mount `NextActionCard`** inline on:
+- `MYTLeadTracker` rows (replaces ad-hoc CTAs)
+- `LeadDossierPanel` top strip
+- The PiP window root (PiP becomes a focused "Next Action" stream)
 
 ---
 
-## Phase 6 — Cross-cutting polish
+## Layer 6 — Manager 8:30 AM Dashboard
 
-- **Tag chips** rendered on lead cards everywhere (use color from `CustomTag.color`)
-- **Super-hot leads** get a pulsing 🚨 badge + sort to top of every queue + auto-create a follow-up due in 2h
-- **Earliest check-in** shown in lead drawer + factored into ManagerDashboard "same-day-closing potential" KPI card
-- **Assignment dropdown** added to lead row context menu (`LeadActionsMenu`) — calls new `assignLead`
+**New `src/components/execution/ManagerMorningReview.tsx`** mounted on `/myt/war-room` as a new top tab **Morning Review**:
+
+Six checklists exactly per spec:
+1. NEW leads from yesterday — first contact within 15min? Misses flagged red.
+2. TOUR_SCHEDULED — T-1 reminder sent? No-shows followed up?
+3. TOURED — post-visit message within 2h? Stuck at T+3?
+4. CI-7 — active in last 48h?
+5. LOST without objection tag — reject button returns to TCM.
+6. Weekly: 10% sample of COLD leads from past 7d — opens follow-up quality reviewer.
+
+Each row: lead link · TCM · gap reason · one-click action (Reassign / Nudge TCM / Take Over).
 
 ---
 
-## Files to be created
-- `src/lib/audit-log.ts`
-- `src/components/audit/WhatChangedStrip.tsx`
-- `src/components/leads/UnifiedLeadTimeline.tsx`
-- `src/components/leads/TagPicker.tsx`
-- `src/components/leads/PriorityChip.tsx`
-- `src/components/leads/AssigneeSelect.tsx`
-- `src/components/today/PersonaTodayCards.tsx`
-- `src/components/tcm/CallVoiceLogger.tsx`
-- `src/components/flow-ops/AutoBalancePanel.tsx`
-- `src/components/flow-ops/DuplicateMergeInbox.tsx`
-- `src/components/SidebarMore.tsx`
-- `src/routes/owner/approve.tsx`
+## Layer 7 — Escalation & Alerts
 
-## Files to be modified
-- `src/lib/lead-identity/types.ts` (schema)
-- `src/lib/lead-identity/store.ts` (new actions + audit emit)
-- `src/lib/crm10x/store.ts` (audit emit + extend `CallRecord` with transcript)
-- `src/components/AppShell.tsx` (slim sidebar, pinned/more)
-- `src/components/leads/QuickAddLeadPanel.tsx` (tags/priority/assignee/earliest)
-- `src/components/leads/DirectLeadForm.tsx` (same)
-- `src/components/LeadActionsMenu.tsx` (assign + tag actions)
-- `src/myt/pages/MYTLeadTracker.tsx` (super-hot sort, tags, timeline tab)
-- `src/myt/pages/WarRoom.tsx` (tabbed merge with ManagerDashboard)
-- `src/myt/pages/FlowOpsDashboard.tsx` (mount auto-balance + dup-merge)
-- `src/routes/today.tsx` (mount PersonaTodayCards)
-- `src/routes/manager.tsx` + `src/routes/myt/index.tsx` (redirect to war-room)
-- `src/owner/pages/OwnerHome.tsx` (persona-tailored)
-- `src/routes/owner/blocks.tsx` + `visits.tsx` + `rooms.tsx` (redirect to /owner/approve)
+**New `src/lib/execution/escalation.ts`**:
+- Rule registry mapping the Escalation Matrix to triggers.
+- Emits notifications via existing `src/lib/notifications.ts` to TCM + Manager.
+- Writes audit entries (`escalation-triggered`) so `WhatChangedStrip` shows them.
+- Auto-creates a Manager-owned task when "Manager takes over" fires.
 
-## Out of scope (call out explicitly)
-- No backend wiring — all data continues to live in zustand persisted stores. Voice transcripts use the in-browser Web Speech API (no ElevenLabs cost).
-- No mobile redesign of the sidebar — slim layout still uses the existing mobile sheet.
-- I will **not** delete the legacy route files; they redirect, so deep links keep working.
+---
 
-After approval I'll execute all phases in order. Phases 1–3 land first because 4–6 depend on them.
+## Layer 8 — Lead Card Structure Pass
+
+Refactor `LeadDossierPanel` / lead drawer to render the three blocks from the spec:
+- **Identity Block** · **Requirement Block** · **Activity Block** · **Stage Block** (phase / stage / `days since L` / `days to CI` / escalation flag).
+
+Days counters auto-tick via `useNow()`.
+
+---
+
+## Files
+
+**Create**
+- `src/lib/crm10x/scripts.ts`
+- `src/lib/crm10x/execution-engine.ts`
+- `src/lib/execution/escalation.ts`
+- `src/components/execution/NextActionCard.tsx`
+- `src/components/execution/ManagerMorningReview.tsx`
+- `src/components/execution/PhaseDayBadge.tsx`
+- `src/components/execution/ObjectionChipRow.tsx`
+- `src/routes/execution.tsx`
+
+**Modify**
+- `src/lib/lead-identity/types.ts` (anchors, phase/stage, nextAction, objection)
+- `src/lib/lead-identity/store.ts` (mutations + auto-recompute + LOST guard)
+- `src/lib/crm10x/store.ts` (actionTickets slice)
+- `src/lib/crm10x/types.ts` (ActionTicket, ScriptTemplate)
+- `src/components/leads/QuickAddLeadPanel.tsx` + `DirectLeadForm.tsx` (capture anchors, set Phase 1 / `L+0` automatically)
+- `src/components/crm10x/LeadDossierPanel.tsx` (4-block layout + NextActionCard)
+- `src/myt/pages/MYTLeadTracker.tsx` (phase columns, breach badges, sort by `dueAt`)
+- `src/myt/pages/WarRoom.tsx` (Morning Review tab)
+- `src/components/AppShell.tsx` (pin `/execution` for TCM role)
+- `src/components/pip/PipProvider.tsx` (default PiP route → `/execution`)
+
+## Out of scope (called out)
+- No backend / cron — schedule is recomputed client-side on store change + 60s tick. Move to Cloud later if needed.
+- WhatsApp Business API not wired; "Send WhatsApp" uses `wa.me/` deep-links pre-filled with the rendered script.
+- No SMS/email channels in this pass — message-only spec.
+- Existing legacy follow-up UI stays mounted but its data source switches to the engine's `actionTickets`.
+
+After approval I execute all 8 layers in order; Layers 1–3 are the foundation everything else binds to.
+
