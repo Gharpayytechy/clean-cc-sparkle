@@ -27,6 +27,7 @@ import { Route as HeatmapRouteImport } from './routes/heatmap'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as HandoffsRouteImport } from './routes/handoffs'
 import { Route as FollowUpsRouteImport } from './routes/follow-ups'
+import { Route as ExecutionRouteImport } from './routes/execution'
 import { Route as CoachRouteImport } from './routes/coach'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ActivityRouteImport } from './routes/activity'
@@ -158,6 +159,11 @@ const HandoffsRoute = HandoffsRouteImport.update({
 const FollowUpsRoute = FollowUpsRouteImport.update({
   id: '/follow-ups',
   path: '/follow-ups',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExecutionRoute = ExecutionRouteImport.update({
+  id: '/execution',
+  path: '/execution',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoachRoute = CoachRouteImport.update({
@@ -376,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
+  '/execution': typeof ExecutionRoute
   '/follow-ups': typeof FollowUpsRoute
   '/handoffs': typeof HandoffsRoute
   '/health': typeof HealthRoute
@@ -438,6 +445,7 @@ export interface FileRoutesByTo {
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
+  '/execution': typeof ExecutionRoute
   '/follow-ups': typeof FollowUpsRoute
   '/handoffs': typeof HandoffsRoute
   '/health': typeof HealthRoute
@@ -501,6 +509,7 @@ export interface FileRoutesById {
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
+  '/execution': typeof ExecutionRoute
   '/follow-ups': typeof FollowUpsRoute
   '/handoffs': typeof HandoffsRoute
   '/health': typeof HealthRoute
@@ -565,6 +574,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/calendar'
     | '/coach'
+    | '/execution'
     | '/follow-ups'
     | '/handoffs'
     | '/health'
@@ -627,6 +637,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/calendar'
     | '/coach'
+    | '/execution'
     | '/follow-ups'
     | '/handoffs'
     | '/health'
@@ -689,6 +700,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/calendar'
     | '/coach'
+    | '/execution'
     | '/follow-ups'
     | '/handoffs'
     | '/health'
@@ -752,6 +764,7 @@ export interface RootRouteChildren {
   ActivityRoute: typeof ActivityRoute
   CalendarRoute: typeof CalendarRoute
   CoachRoute: typeof CoachRoute
+  ExecutionRoute: typeof ExecutionRoute
   FollowUpsRoute: typeof FollowUpsRoute
   HandoffsRoute: typeof HandoffsRoute
   HealthRoute: typeof HealthRoute
@@ -932,6 +945,13 @@ declare module '@tanstack/react-router' {
       path: '/follow-ups'
       fullPath: '/follow-ups'
       preLoaderRoute: typeof FollowUpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/execution': {
+      id: '/execution'
+      path: '/execution'
+      fullPath: '/execution'
+      preLoaderRoute: typeof ExecutionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/coach': {
@@ -1271,6 +1291,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActivityRoute: ActivityRoute,
   CalendarRoute: CalendarRoute,
   CoachRoute: CoachRoute,
+  ExecutionRoute: ExecutionRoute,
   FollowUpsRoute: FollowUpsRoute,
   HandoffsRoute: HandoffsRoute,
   HealthRoute: HealthRoute,
