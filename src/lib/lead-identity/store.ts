@@ -10,6 +10,8 @@ import type {
 import { newUlid, normalizePhoneIN, normalizeEmail, parseBudgetToNumber } from "./normalize";
 import { findMatches } from "./similarity";
 import { useAuditLog } from "@/lib/audit-log";
+import { usePipeline } from "@/lib/pipeline/store";
+import { logAction } from "@/lib/monitoring/activity-store";
 
 /** Mirror a lead-store mutation into the universal audit log. */
 function audit(action: string, ulid: string, summary: string, actor: { id: string; name: string }, before?: unknown, after?: unknown) {
@@ -165,6 +167,14 @@ export const useIdentityStore = create<IdentityStore>()(
         set((s) => ({ leads: [lead, ...s.leads] }));
         get().logActivity(lead.ulid, "lead-created", `Lead created by ${ownerName}`);
         audit("lead-created", lead.ulid, `Lead created · ${lead.name}`, user, undefined, lead.name);
+        // Start 60-second dossier timer & log for monitoring dashboard.
+        usePipeline.getState().ensure(lead.ulid);
+        logAction({
+          userId: user.id, userName: user.name,
+          leadId: lead.ulid, leadName: lead.name,
+          action: "lead-added", feature: "add-lead",
+          stageTo: "DOSSIER",
+        });
         return lead;
       },
 

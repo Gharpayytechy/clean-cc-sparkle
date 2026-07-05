@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { ObjectionLogger } from "./ObjectionLogger";
 import { LeadDeepProfile } from "./LeadDeepProfile";
 import { SmartWaLayer } from "./SmartWaLayer";
+import { ClosingEngineCard } from "@/components/pipeline/ClosingEngineCard";
 
 /**
  * The "Dossier" tab — booking probability, best-call-time, deep profile,
@@ -70,6 +71,9 @@ export function LeadDossierPanel({ lead }: { lead: Lead }) {
 
   return (
     <div className="space-y-4">
+      {/* 11-stage Closing Engine — mandatory pipeline gates */}
+      <ClosingEngineCard leadId={lead.id} />
+
       {/* Probability card */}
       <div className={`rounded-lg border p-3 ${tone}`}>
         <div className="flex items-center justify-between">
