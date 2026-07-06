@@ -175,8 +175,13 @@ export const useIdentityStore = create<IdentityStore>()(
           action: "lead-added", feature: "add-lead",
           stageTo: "DOSSIER",
         });
+        // Auto-Pilot: auto-assign to best TCM if enabled.
+        void import("@/lib/pipeline/auto-pilot").then((m) =>
+          m.autoAssignOnCreate(lead.ulid, lead.name),
+        );
         return lead;
       },
+
 
       logActivity: (ulid, kind, text, meta) => {
         const user = get().currentUser;

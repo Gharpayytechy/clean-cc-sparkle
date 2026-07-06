@@ -1,147 +1,128 @@
-# Gharpayy Closing Engine (0 → 1)
+# Gharpayy 10X: Unified Super Modules + Auto-Everything
 
-Transform the CRM from list-of-leads into a **stage-gated execution pipeline** where every lead moves through 11 enforced checkpoints with timers, mandatory data capture, and manager visibility.
+Goal: fewer surfaces, fewer clicks, more automation. Every module becomes a
+single place. Every routine step becomes automatic with an "undo" instead of
+a "confirm".
 
 ---
 
-## 1. Pipeline Schema (single source of truth)
+## 1. Super Modules (collapse ~20 routes → 6)
 
-Extend `UnifiedLead` in `src/lib/lead-identity/types.ts`:
+New sidebar, in order:
 
-```ts
-type PipelineStage =
-  | 'NEW'              // 0-15s
-  | 'DOSSIER'          // 60s timer
-  | 'MATCHED'          // P1/P2/P3 pinned
-  | 'TOUR_SCHEDULED'
-  | 'TOUR_CONFIRMED'
-  | 'TOUR_IN_PROGRESS'
-  | 'POST_VISIT'
-  | 'QUOTED'           // 15-min SLA after tour
-  | 'NEGOTIATION'
-  | 'BOOKED'
-  | 'CHECKED_IN'
-  | 'LOST'
-
-interface StageGate {
-  enteredAt: string
-  slaDeadline?: string      // when this stage breaches
-  breached: boolean
-  requiredFields: string[]  // must be filled to exit
-  completedFields: string[]
-}
-
-interface Dossier {
-  feasibility: {...}       // move date, budget, area, gender, occupation, food, sharing, duration
-  locationFeasibility: {...} // office, college, travelTime, preferred, alt
-  movingFeasibility: 'immediate'|'7d'|'15d'|'30d'|'researching'
-  decisionMaker: 'self'|'parents'|'friends'|'company'
-  competition: 'visiting'|'booked'|'comparing'|'none'
-  objection: ObjectionTag
-  propertiesSent: { p1?, p2?, p3?, p4?, pdfSent, videoSent, locationSent }
-  completionPct: number   // 0-100, stage cannot advance below 100
-}
+```text
+Today        → merges /today + /execution + /queue + /follow-ups
+Leads        → /leads (single cockpit for all lead detail)
+Pipeline     → /pipeline (stage board + dossier board + revival)
+Command      → merges /monitoring + /manager + /leaderboard + /activity + /health
+Calendar     → /calendar + /tours
+More         → drawer: Sequences, Zone Brain, Inventory, Coach, Settings, HR, Owner, MYT
 ```
 
-## 2. The Stage Gate Engine
+Existing routes stay as redirects to the new module so links don't break.
+File deletions are limited to sidebar entries; underlying components are
+reused inside the new module shells.
 
-New file `src/lib/pipeline/stage-engine.ts`:
-- `canAdvance(lead, toStage)` — enforces entry/exit criteria per stage
-- `advanceStage(leadId, toStage)` — throws if gate fails, logs to audit
-- `computeSlaState(lead)` — returns `ok|warning|breached|escalated` per active stage
-- Stage rules table (SLAs):
-  - `NEW → DOSSIER`: 60 seconds
-  - `TOUR_SCHEDULED → TOUR_CONFIRMED`: 24h/6h/2h/30m reminder cascade
-  - `POST_VISIT → QUOTED`: **15 minutes mandatory** (breach = red)
-  - `QUOTED → NEGOTIATION/BOOKED`: 2h → 24h → 48h → 72h → 7d follow-up ladder
-  - No booking after 7d → Revival at 30/60/90d
+## 2. Unified Lead Cockpit (one panel, no tabs)
 
-## 3. The 60-Second Dossier Timer (Stage 2)
+Kill the split between `LeadDeepProfile`, `LeadControlPanel`, `LeadDossierPanel`,
+`ClosingEngineCard`, `NextActionCard`, `UnifiedLeadTimeline`. Replace with a
+single right-hand sheet:
 
-New component `src/components/pipeline/DossierTimer.tsx`:
-- Fires immediately on lead creation
-- Red pulsing banner with countdown `60 → 0`
-- Progress bar showing dossier completion % (e.g. 72%, 3 fields remaining)
-- On expiry: SLA badge turns red, manager notified via `escalation.ts`, lead moves to bottom of TCM's queue
-- Cannot dismiss until all mandatory fields filled OR manager overrides with reason
+```text
+┌ Header: name · phone · stage badge · SLA pulse · auto-actions toggle ┐
+│ Auto Next Action  →  [Send now] [Edit] [Snooze 15m]  (fires itself   │
+│                     in N seconds unless user intervenes)             │
+│ Dossier (inline, live-parsed from paste, auto-completing)            │
+│ Stage rail (11 stages, click to jump, locked ones show why)          │
+│ Timeline (WA + audit + system events, single stream)                 │
+└──────────────────────────────────────────────────────────────────────┘
+```
 
-New `src/components/pipeline/DossierForm.tsx`: single tight form covering all Stage 2 mandatory fields, grouped into 6 sections, live completion %.
+One component: `src/components/cockpit/LeadCockpit.tsx`. Old panels become
+thin re-exports for one release, then removed.
 
-## 4. Stage-Gated Lead Dossier Panel
+## 3. Auto-Everything Engine
 
-Refactor lead detail to show **the 11-stage stepper** (replaces current 5-block layout):
-- Each stage = clickable pill showing state (`done | active | locked | breached`)
-- Active stage exposes its action panel (dossier form / tour scheduler / quote builder / etc.)
-- Locked stages show entry criteria not yet met
-- Breach stages pulse red with time-since-breach
+New `src/lib/pipeline/auto-pilot.ts` runs on every store tick:
 
-Files:
-- `src/components/pipeline/StageStepper.tsx`
-- `src/components/pipeline/StagePanel.tsx` (routes to per-stage sub-panel)
-- Per-stage panels: `Dossier`, `PropertyMatch`, `TourSchedule`, `TourConfirm`, `VisitExecution`, `PostVisit`, `Quotation`, `Negotiation`, `Booking`, `CheckIn`
+| Trigger                              | Auto action                                             |
+| ------------------------------------ | ------------------------------------------------------- |
+| Lead created                         | Auto-assign via `routing.autoAssign` — no click         |
+| Paste captured                       | Auto-fill dossier fields (name, phone, area, budget,    |
+|                                      | move-in) via `lead-identity/parser`                     |
+| Dossier ≥ 80% + WA reply             | Advance NEW → CONTACTED                                 |
+| Tour scheduled + reply "yes/confirm" | Advance TOUR_SCHEDULED → TOUR_CONFIRMED                 |
+| Tour time passes                     | Advance to TOURED (unless no-show flag)                 |
+| SLA breach                           | One grouped manager alert per 5 min, not per lead       |
+| Next-action due                      | Countdown → auto-send at T-0, unless user hits Snooze   |
+|                                      | or Edit (5s "undo" toast after send)                    |
 
-## 5. Automation Rules (Rule 1–8 in spec)
+Toggle per lead + global "Auto-pilot" switch in header. All auto actions are
+logged to `activity-store` with `actor: "auto-pilot"` so managers see them.
 
-`src/lib/pipeline/automation-rules.ts` — pure functions run on every store mutation:
-- R1: Lead created → start 60s timer
-- R2: Timer expired → red alert + manager notify
-- R3: No tour in 24h → move to Action Queue
-- R4: Tour today → auto-fire confirmation cascade (6h/2h/30m)
-- R5: Tour completed → mandatory quote within 15min or SLA breach
-- R6: Quote sent → schedule 2h/24h/48h/72h/7d follow-ups
-- R7: No booking after ladder → Negotiation queue
-- R8: Lead cold → Revival 30/60/90d
+## 4. Unified Command Bar (⌘K)
 
-Ticks run via `useAutomationTicker` hook (every 30s, cheap client-side pass).
+Replace `CommandPalette` + quick-add + `LeadActionsMenu` with one bar. Typing:
 
-## 6. Activity Monitoring & Manager Sheet
+```text
+> paste lead …            → creates lead + auto-fills dossier + auto-assigns
+> send wa to <name> …     → picks template, queues send
+> advance <name> to tour  → runs stage gate
+> assign <name> to <tcm>  → reroutes
+> snooze <name> 2h        → pauses next action
+> escalate <name>         → flags for manager
+```
 
-New store `src/lib/monitoring/activity-store.ts` — logs every action (button click, stage change, message sent) with `{time, userId, leadId, action, stageFrom, stageTo, feature}`.
+Everything routes through the same execution engine. No modals.
 
-New route `/monitoring` (Owner/Manager only) with 6 tabs mirroring the sheet spec:
-1. **Raw Activity Log** — live scrolling table
-2. **30-Min Dashboard** — per-person: leads added, clicks, scheduled, quotes, inactive flag, stuck lead count
-3. **Lead Stage Matrix** — per-person × per-stage counts
-4. **Low Activity Alerts** — anyone idle >30min or stuck at a stage
-5. **Feature Usage Analytics** — most-clicked buttons, unique users
-6. **End-of-Day Scoreboard** — vs targets (20 scheduled, 3 quotes per person)
+## 5. Unified Command Center (`/command`)
 
-Auto-refresh every 30s. Export-to-CSV button for the manager report.
+Tabs inside one page (replacing 5 routes):
 
-## 7. Live KPI Strip (visible to every TCM)
+```text
+[ Live ] [ Team ] [ Pipeline ] [ Leaderboard ] [ Activity ] [ Health ]
+```
 
-Replace top strip in Flow-Ops / Today with the spec's 20 KPIs, color-coded vs target:
-Leads Added · Dossiers % · Avg Dossier Time · Timer Violations · Match Accuracy · Tours Scheduled · Show Rate · No-Show Rate · Rescheduled · Tours Completed · Quotes Sent · Quote SLA % · Negotiations · Booking Conv · Revenue · Avg Closing Time · Active Follow-ups · Stuck · Escalated · Daily Target Progress
+`Live` = new default: KPI strip + real-time action feed + open SLA breaches
+grouped by cause. Manager can bulk-acknowledge or bulk-reassign from here.
 
-## 8. Deliverables (files)
+## 6. Files
 
-**Create (~15):**
-- `src/lib/pipeline/stage-engine.ts`
-- `src/lib/pipeline/automation-rules.ts`
-- `src/lib/pipeline/stage-config.ts` (SLAs, required fields)
-- `src/lib/monitoring/activity-store.ts`
-- `src/hooks/useAutomationTicker.ts`
-- `src/components/pipeline/DossierTimer.tsx`
-- `src/components/pipeline/DossierForm.tsx`
-- `src/components/pipeline/StageStepper.tsx`
-- `src/components/pipeline/StagePanel.tsx`
-- `src/components/pipeline/panels/*.tsx` (10 per-stage panels — thin wrappers around existing UI where possible)
-- `src/components/monitoring/ActivityLogTable.tsx`
-- `src/components/monitoring/TeamDashboard.tsx`
-- `src/components/monitoring/StageMatrix.tsx`
-- `src/components/monitoring/KpiStrip.tsx`
-- `src/routes/monitoring.tsx`
+Create:
+- `src/lib/pipeline/auto-pilot.ts`
+- `src/hooks/useAutoPilot.ts` (subscribes to ticker, executes rules)
+- `src/components/cockpit/LeadCockpit.tsx`
+- `src/components/cockpit/AutoActionCountdown.tsx`
+- `src/components/cockpit/DossierInline.tsx`
+- `src/components/cockpit/StageRail.tsx`
+- `src/components/cockpit/UnifiedTimeline.tsx`
+- `src/components/command/UnifiedCommandBar.tsx`
+- `src/routes/today.tsx` (rewrite as Super Module)
+- `src/routes/command.tsx` (new merged Command Center)
+- `src/routes/pipeline.tsx` (new merged Pipeline board)
 
-**Edit (~6):**
-- `src/lib/lead-identity/types.ts` — add PipelineStage, StageGate, Dossier
-- `src/lib/lead-identity/store.ts` — add `advanceStage`, `updateDossier`, `logActivity`
-- `src/lib/crm10x/execution-engine.ts` — hook new SLA rules
-- `src/components/leads/LeadDossierPanel.tsx` — swap to StageStepper
-- `src/components/AppShell.tsx` — add /monitoring nav for Owner
-- Add lead flow — trigger 60s timer on create
+Edit:
+- `src/components/AppShell.tsx` — collapse sidebar to 6 items + More drawer
+- `src/lib/lead-identity/store.ts` — call auto-pilot hooks on create/update
+- `src/lib/pipeline/store.ts` — expose events for auto-pilot
+- `src/routes/execution.tsx`, `queue.tsx`, `follow-ups.tsx`,
+  `monitoring.tsx`, `manager.tsx`, `leaderboard.tsx`, `activity.tsx`,
+  `health.tsx` — thin redirects to their new super module
+- `src/components/crm10x/LeadDossierPanel.tsx` — render `LeadCockpit`
 
-## Scope note
+## 7. Out of scope (this pass)
 
-This is a large build (~20 files). I'll ship it as one atomic set so the pipeline is consistent end-to-end. Existing screens (Flow-Ops board, Impact Queue, Execution Queue) stay as they are — they'll read from the new stage field automatically since stage transitions flow through the existing store.
+- WhatsApp Business API integration (still simulated sends)
+- Lovable Cloud persistence (still local zustand)
+- MYT / Owner / Supply-Hub internal reshuffling (only sidebar entry point changes)
 
-Ready to build?
+## 8. Ship order
+
+1. Auto-pilot engine + toggle (invisible wins immediately)
+2. Lead Cockpit (unifies detail view)
+3. Unified Command Bar
+4. Super Modules + sidebar collapse + route redirects
+5. Command Center merge
+
+Approve and I'll implement top-to-bottom.
