@@ -326,11 +326,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             </kbd>
           </button>
           <div className="ml-auto flex items-center gap-2">
+            <AutoPilotBadge />
             <PipButton />
             <NotificationCenter role={role} />
             <ProfileMenu />
           </div>
         </header>
+
 
         <PipMount>
           <main className="flex-1 w-full max-w-[1400px] mx-auto p-4 pb-24 md:p-6 md:pb-6">{children}</main>
