@@ -346,6 +346,31 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex items-stretch gap-1 overflow-x-auto px-2 py-2 scrollbar-thin scroll-smooth snap-x">
           {items.map((item) => {
             const Icon = item.icon;
+            if (item.to === "__more__") {
+              return (
+                <Popover key="more-m">
+                  <PopoverTrigger asChild>
+                    <button className="relative flex shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-md px-3 py-1.5 text-[10px] font-medium text-muted-foreground hover:bg-muted/60 min-w-[64px] min-h-[44px]">
+                      <Icon className="h-4 w-4" />
+                      <span>More</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent side="top" align="end" className="w-56 p-1">
+                    <div className="max-h-[50vh] overflow-y-auto space-y-0.5">
+                      {moreItems.map((m) => {
+                        const MIcon = m.icon;
+                        return (
+                          <Link key={m.to} to={m.to} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs hover:bg-muted">
+                            <MIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{m.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              );
+            }
             const active = isActive(item.to);
             return (
               <Link
@@ -366,6 +391,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
+
         </div>
       </nav>
 
