@@ -201,6 +201,44 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-thin">
           {items.map((it) => {
             const Icon = it.icon;
+            if (it.to === "__more__") {
+              return (
+                <Popover key="more">
+                  <PopoverTrigger asChild>
+                    <button
+                      className={cn(
+                        "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors",
+                        "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground text-sidebar-foreground",
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>More</span>
+                      <span className="ml-auto text-[10px] text-sidebar-foreground/60 font-mono">{moreItems.length}</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent side="right" align="start" className="w-56 p-1">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1">
+                      All modules
+                    </div>
+                    <div className="max-h-[60vh] overflow-y-auto space-y-0.5">
+                      {moreItems.map((m) => {
+                        const MIcon = m.icon;
+                        return (
+                          <Link
+                            key={m.to}
+                            to={m.to}
+                            className="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-xs hover:bg-muted transition-colors"
+                          >
+                            <MIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{m.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              );
+            }
             const active = isActive(it.to);
             return (
               <Link
@@ -230,6 +268,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+
 
         <div className="p-3 border-t border-sidebar-border space-y-2">
           <div className="text-[10px] text-sidebar-foreground/70 flex items-center justify-between px-1">
