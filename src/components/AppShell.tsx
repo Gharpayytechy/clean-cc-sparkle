@@ -23,12 +23,17 @@ import { useEffect, useMemo } from "react";
 import { PictureInPictureProvider, PipMount, usePip } from "./pip/PipProvider";
 import { PipButton } from "./pip/PipButton";
 import { usePipRouteSync } from "./pip/usePipSync";
+import { AutoPilotBadge } from "./AutoPilotBadge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 function PipRouteSyncBridge() {
   const { active } = usePip();
   usePipRouteSync(active);
   return null;
 }
+
+type NavItem = { to: string; label: string; icon: typeof Target; badge?: number; accent?: boolean };
+
 
 type NavItem = { to: string; label: string; icon: typeof Target; badge?: number; accent?: boolean };
 
