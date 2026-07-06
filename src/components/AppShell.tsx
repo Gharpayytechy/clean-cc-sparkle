@@ -1,10 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Target, CalendarPlus, ClipboardList, Boxes, Activity,
-  Building2, Search, Sun, Command, Trophy, Sparkles, MessageSquare,
-  IndianRupee, MapPin, Zap, Users, Home, Calendar, Store, Swords, Settings, AlertTriangle,
-  ShieldCheck, Inbox, Camera, HelpCircle, Layers, HeartPulse,
+  Target, ClipboardList, Activity, Building2, Search, Sun, Command, Sparkles,
+  Users, Home, Calendar, Settings, ShieldCheck, Inbox, HelpCircle, Layers,
+  HeartPulse, Zap, MoreHorizontal, MessageSquare, Store, MapPin, Trophy,
+  IndianRupee, Camera,
 } from "lucide-react";
+
 import { NotificationCenter } from "./NotificationCenter";
 import { ProfileMenu } from "./ProfileMenu";
 import { useApp } from "@/lib/store";
