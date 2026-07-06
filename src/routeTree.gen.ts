@@ -17,6 +17,7 @@ import { Route as SequencesRouteImport } from './routes/sequences'
 import { Route as RevivalRouteImport } from './routes/revival'
 import { Route as RevenueRouteImport } from './routes/revenue'
 import { Route as QueueRouteImport } from './routes/queue'
+import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as ManagerRouteImport } from './routes/manager'
 import { Route as LeadsRouteImport } from './routes/leads'
@@ -29,6 +30,7 @@ import { Route as HealthRouteImport } from './routes/health'
 import { Route as HandoffsRouteImport } from './routes/handoffs'
 import { Route as FollowUpsRouteImport } from './routes/follow-ups'
 import { Route as ExecutionRouteImport } from './routes/execution'
+import { Route as CommandRouteImport } from './routes/command'
 import { Route as CoachRouteImport } from './routes/coach'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ActivityRouteImport } from './routes/activity'
@@ -112,6 +114,11 @@ const QueueRoute = QueueRouteImport.update({
   path: '/queue',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PipelineRoute = PipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MonitoringRoute = MonitoringRouteImport.update({
   id: '/monitoring',
   path: '/monitoring',
@@ -170,6 +177,11 @@ const FollowUpsRoute = FollowUpsRouteImport.update({
 const ExecutionRoute = ExecutionRouteImport.update({
   id: '/execution',
   path: '/execution',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommandRoute = CommandRouteImport.update({
+  id: '/command',
+  path: '/command',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoachRoute = CoachRouteImport.update({
@@ -388,6 +400,7 @@ export interface FileRoutesByFullPath {
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
+  '/command': typeof CommandRoute
   '/execution': typeof ExecutionRoute
   '/follow-ups': typeof FollowUpsRoute
   '/handoffs': typeof HandoffsRoute
@@ -400,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
   '/monitoring': typeof MonitoringRoute
+  '/pipeline': typeof PipelineRoute
   '/queue': typeof QueueRoute
   '/revenue': typeof RevenueRoute
   '/revival': typeof RevivalRoute
@@ -452,6 +466,7 @@ export interface FileRoutesByTo {
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
+  '/command': typeof CommandRoute
   '/execution': typeof ExecutionRoute
   '/follow-ups': typeof FollowUpsRoute
   '/handoffs': typeof HandoffsRoute
@@ -464,6 +479,7 @@ export interface FileRoutesByTo {
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
   '/monitoring': typeof MonitoringRoute
+  '/pipeline': typeof PipelineRoute
   '/queue': typeof QueueRoute
   '/revenue': typeof RevenueRoute
   '/revival': typeof RevivalRoute
@@ -517,6 +533,7 @@ export interface FileRoutesById {
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
+  '/command': typeof CommandRoute
   '/execution': typeof ExecutionRoute
   '/follow-ups': typeof FollowUpsRoute
   '/handoffs': typeof HandoffsRoute
@@ -529,6 +546,7 @@ export interface FileRoutesById {
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
   '/monitoring': typeof MonitoringRoute
+  '/pipeline': typeof PipelineRoute
   '/queue': typeof QueueRoute
   '/revenue': typeof RevenueRoute
   '/revival': typeof RevivalRoute
@@ -583,6 +601,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/calendar'
     | '/coach'
+    | '/command'
     | '/execution'
     | '/follow-ups'
     | '/handoffs'
@@ -595,6 +614,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/manager'
     | '/monitoring'
+    | '/pipeline'
     | '/queue'
     | '/revenue'
     | '/revival'
@@ -647,6 +667,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/calendar'
     | '/coach'
+    | '/command'
     | '/execution'
     | '/follow-ups'
     | '/handoffs'
@@ -659,6 +680,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/manager'
     | '/monitoring'
+    | '/pipeline'
     | '/queue'
     | '/revenue'
     | '/revival'
@@ -711,6 +733,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/calendar'
     | '/coach'
+    | '/command'
     | '/execution'
     | '/follow-ups'
     | '/handoffs'
@@ -723,6 +746,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/manager'
     | '/monitoring'
+    | '/pipeline'
     | '/queue'
     | '/revenue'
     | '/revival'
@@ -776,6 +800,7 @@ export interface RootRouteChildren {
   ActivityRoute: typeof ActivityRoute
   CalendarRoute: typeof CalendarRoute
   CoachRoute: typeof CoachRoute
+  CommandRoute: typeof CommandRoute
   ExecutionRoute: typeof ExecutionRoute
   FollowUpsRoute: typeof FollowUpsRoute
   HandoffsRoute: typeof HandoffsRoute
@@ -788,6 +813,7 @@ export interface RootRouteChildren {
   LeadsRoute: typeof LeadsRouteWithChildren
   ManagerRoute: typeof ManagerRoute
   MonitoringRoute: typeof MonitoringRoute
+  PipelineRoute: typeof PipelineRoute
   QueueRoute: typeof QueueRoute
   RevenueRoute: typeof RevenueRoute
   RevivalRoute: typeof RevivalRoute
@@ -890,6 +916,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QueueRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pipeline': {
+      id: '/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof PipelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/monitoring': {
       id: '/monitoring'
       path: '/monitoring'
@@ -972,6 +1005,13 @@ declare module '@tanstack/react-router' {
       path: '/execution'
       fullPath: '/execution'
       preLoaderRoute: typeof ExecutionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/command': {
+      id: '/command'
+      path: '/command'
+      fullPath: '/command'
+      preLoaderRoute: typeof CommandRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/coach': {
@@ -1311,6 +1351,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActivityRoute: ActivityRoute,
   CalendarRoute: CalendarRoute,
   CoachRoute: CoachRoute,
+  CommandRoute: CommandRoute,
   ExecutionRoute: ExecutionRoute,
   FollowUpsRoute: FollowUpsRoute,
   HandoffsRoute: HandoffsRoute,
@@ -1323,6 +1364,7 @@ const rootRouteChildren: RootRouteChildren = {
   LeadsRoute: LeadsRouteWithChildren,
   ManagerRoute: ManagerRoute,
   MonitoringRoute: MonitoringRoute,
+  PipelineRoute: PipelineRoute,
   QueueRoute: QueueRoute,
   RevenueRoute: RevenueRoute,
   RevivalRoute: RevivalRoute,
