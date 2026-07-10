@@ -53,6 +53,20 @@ export interface Dossier {
   videoSent?: boolean;
   locationSent?: boolean;
 
+  // Deal read (added)
+  closingExpectation?: "very-high" | "hard" | "maybe" | "try-nearby";
+  goal?: "pb" | "offline";
+
+  // Signals — multi-select chips
+  signals?: string[]; // e.g. "urgent", "ready-to-pay", "price-issue", "location-mismatch", "parents-involved", "budget-low"
+
+  // Who is coming to see the PG
+  leadPersona?: "self" | "couple" | "student" | "working-pro" | "family" | "group-interns" | "group-friends" | "other";
+  groupSize?: number;
+
+  // Fields the user explicitly deferred: fieldKey -> reason
+  skipped?: Record<string, string>;
+
   // Meta
   completionPct: number;
   completedAt?: string;
