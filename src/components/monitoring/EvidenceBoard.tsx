@@ -46,7 +46,7 @@ export function EvidenceBoard() {
       .filter((r) =>
         !filter ||
         r.lead.name.toLowerCase().includes(filter.toLowerCase()) ||
-        (r.lead.phone ?? "").includes(filter),
+        (r.lead.phoneRaw ?? r.lead.phoneE164 ?? "").includes(filter),
       )
       .sort((a, b) => b.gaps - a.gaps);
   }, [leads, states, filter, onlyGaps]);
