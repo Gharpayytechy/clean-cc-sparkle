@@ -4,6 +4,7 @@ import { KpiStrip } from "@/components/monitoring/KpiStrip";
 import { TeamDashboard } from "@/components/monitoring/TeamDashboard";
 import { StageMatrix } from "@/components/monitoring/StageMatrix";
 import { ActivityLogTable } from "@/components/monitoring/ActivityLogTable";
+import { EvidenceBoard } from "@/components/monitoring/EvidenceBoard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/monitoring")({
