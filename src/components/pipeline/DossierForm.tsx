@@ -16,13 +16,13 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Circle, MinusCircle, SkipForward, X } from "lucide-react";
+import { CheckCircle2, Circle, MinusCircle, SkipForward, X, Zap } from "lucide-react";
 import type { Dossier } from "@/lib/pipeline/types";
 import {
   SIGNAL_PRESETS, CLOSING_EXPECTATIONS, GOAL_OPTIONS, LEAD_PERSONAS,
-  DOSSIER_FIELD_LABELS, QUICK_PRESETS,
+  DOSSIER_FIELD_LABELS, QUICK_PRESETS, WHY_MAP,
 } from "@/lib/pipeline/dossier-presets";
-import { Zap } from "lucide-react";
+import { WhyCaption, WhySectionBanner } from "@/components/common/WhyCaption";
 
 interface Props { leadId: string; }
 
@@ -30,7 +30,8 @@ type FieldKey = keyof Dossier;
 
 /**
  * Rich, live dossier form. Every field shows a status dot
- * (green filled · red empty · amber skipped) and can be deferred with a reason.
+ * (green filled · red empty · amber skipped), can be deferred with a reason,
+ * and carries an always-visible "why this exists / who benefits" caption.
  */
 export function DossierForm({ leadId }: Props) {
   const dossier = usePipeline((s) => s.states[leadId]?.dossier ?? { completionPct: 0 } as Dossier);
@@ -57,6 +58,11 @@ export function DossierForm({ leadId }: Props) {
     patch({ signals: cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s] });
   };
 
+  const [presetFilter, setPresetFilter] = useState("");
+  const filteredPresets = QUICK_PRESETS.filter((p) =>
+    !presetFilter || p.label.toLowerCase().includes(presetFilter.toLowerCase()),
+  );
+
   return (
     <div className="space-y-4">
       {/* Quick-fill preset chips — one tap stamps 3-5 fields at once */}
@@ -64,23 +70,49 @@ export function DossierForm({ leadId }: Props) {
         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-primary font-semibold">
           <Zap className="h-3 w-3" /> One-tap presets
           <span className="text-muted-foreground/70 normal-case font-normal">· merges with what you've filled</span>
+          <Input
+            className="h-6 ml-auto w-32 text-[11px]"
+            placeholder="Filter presets…"
+            value={presetFilter}
+            onChange={(e) => setPresetFilter(e.target.value)}
+          />
         </div>
+        <WhyCaption
+          compact
+          why="Presets stamp 3-5 fields at once so filling stays under 30 seconds."
+          admin="Standardises how leads are tagged across the whole team."
+          tcm="Zero typing when a lead matches a common pattern."
+          client="Faster first response — right script from message #1."
+        />
         <div className="flex flex-wrap gap-1">
-          {QUICK_PRESETS.map((p) => (
+          {filteredPresets.map((p) => (
             <button
               key={p.id}
               type="button"
+              title={p.hint}
               onClick={() => applyPreset(leadId, p.patch, { userId: user.id, userName: user.name })}
               className="text-[11px] px-2 py-1 rounded-md border border-border bg-background hover:bg-primary/10 hover:border-primary/40 transition inline-flex items-center gap-1"
             >
               <span>{p.emoji}</span>{p.label}
             </button>
           ))}
+          {filteredPresets.length === 0 && (
+            <span className="text-[10px] text-muted-foreground">No preset matches "{presetFilter}"</span>
+          )}
         </div>
       </div>
 
       {/* Deal read — the "can we even close this?" section, up top */}
-      <Section title="Deal read" subtitle="Set this before you call. If it's 'try nearby' — reassign.">
+      <Section
+        title="Deal read"
+        subtitle="Set this before you call. If it's 'try nearby' — reassign."
+        banner={{
+          why: "Frames the whole conversation before the first call.",
+          admin: "Downstream forecast + reassignment triggers.",
+          tcm: "Right script, right effort, right stage cadence.",
+          client: "They aren't over-pressured for a bad fit.",
+        }}
+      >
         <div className="grid grid-cols-2 gap-3">
           <FieldRow
             k="closingExpectation" dossier={dossier}
@@ -130,7 +162,16 @@ export function DossierForm({ leadId }: Props) {
       </Section>
 
       {/* Who is coming — persona */}
-      <Section title="Who is coming" subtitle="Solo? Couple? Group of 10 interns? Pitch shifts either way.">
+      <Section
+        title="Who is coming"
+        subtitle="Solo? Couple? Group of 10 interns? Pitch shifts either way."
+        banner={{
+          why: "Persona changes room math, price, and pitch on line one.",
+          admin: "Rolls up team's persona mix + demand.",
+          tcm: "Auto-picks matching properties + tier.",
+          client: "Fewer wrong options, faster yes.",
+        }}
+      >
         <FieldRow
           k="leadPersona" dossier={dossier} inline
           onSkip={(r) => skip("leadPersona", r)} onUnskip={() => unskip("leadPersona")}
@@ -168,7 +209,16 @@ export function DossierForm({ leadId }: Props) {
       </Section>
 
       {/* Signals chip strip */}
-      <Section title="Notes & signals" subtitle="Tap to mark. These flow to the header for scan-at-a-glance.">
+      <Section
+        title="Notes & signals"
+        subtitle="Tap to mark. These flow to the header for scan-at-a-glance."
+        banner={{
+          why: "One-tap tags become the header chips + queue filters.",
+          admin: "Signal mix per TCM + zone becomes a report.",
+          tcm: "No prose needed — one tap = a real flag.",
+          client: "Their real preferences travel with the lead.",
+        }}
+      >
         <div className="flex flex-wrap gap-1.5">
           {SIGNAL_PRESETS.map((s) => {
             const active = (dossier.signals ?? []).includes(s.key);
@@ -191,7 +241,15 @@ export function DossierForm({ leadId }: Props) {
       </Section>
 
       {/* Feasibility grid */}
-      <Section title="Feasibility">
+      <Section
+        title="Feasibility"
+        banner={{
+          why: "Hard filters — budget/date/gender kill the match if wrong.",
+          admin: "Feeds occupancy + budget-loss dashboards.",
+          tcm: "No wasted tours to over-budget / wrong-gender stock.",
+          client: "No sticker-shock, no wrong-property visit.",
+        }}
+      >
         <div className="grid grid-cols-3 gap-3">
           <FieldRow k="moveDate" dossier={dossier}
             onSkip={(r) => skip("moveDate", r)} onUnskip={() => unskip("moveDate")}>
@@ -290,11 +348,160 @@ export function DossierForm({ leadId }: Props) {
         </div>
       </Section>
 
+      {/* NEW · Location & commute — surfaces the office/college/commute fields
+          that were in the type but not on the form. Big wins for match quality. */}
+      <Section
+        title="Location & commute"
+        subtitle="Commute is the #1 predictor of stay-length. Capture it early."
+        banner={{
+          why: "Commute kills stays — filter by it before showing options.",
+          admin: "Zone-brain reallocates high-demand localities.",
+          tcm: "Every property gets a live travel-time chip.",
+          client: "No 90-min-commute surprises after move-in.",
+        }}
+      >
+        <div className="grid grid-cols-3 gap-3">
+          <FieldRow k="officeLocation" dossier={dossier}
+            onSkip={(r) => skip("officeLocation", r)} onUnskip={() => unskip("officeLocation")}>
+            <Input value={dossier.officeLocation ?? ""}
+              placeholder="e.g. Manyata, EGL, Whitefield"
+              onChange={(e) => patch({ officeLocation: e.target.value })} />
+          </FieldRow>
+          <FieldRow k="collegeLocation" dossier={dossier}
+            onSkip={(r) => skip("collegeLocation", r)} onUnskip={() => unskip("collegeLocation")}>
+            <Input value={dossier.collegeLocation ?? ""}
+              placeholder="e.g. Christ, PES, NIFT"
+              onChange={(e) => patch({ collegeLocation: e.target.value })} />
+          </FieldRow>
+          <FieldRow k="travelTimeMinutes" dossier={dossier}
+            onSkip={(r) => skip("travelTimeMinutes", r)} onUnskip={() => unskip("travelTimeMinutes")}>
+            <Input type="number" min={5} step={5}
+              placeholder="min" value={dossier.travelTimeMinutes ?? ""}
+              onChange={(e) => patch({ travelTimeMinutes: Number(e.target.value) || undefined })} />
+          </FieldRow>
+          <FieldRow k="preferredLocality" dossier={dossier}
+            onSkip={(r) => skip("preferredLocality", r)} onUnskip={() => unskip("preferredLocality")}>
+            <Input value={dossier.preferredLocality ?? ""}
+              placeholder="Top-choice locality"
+              onChange={(e) => patch({ preferredLocality: e.target.value })} />
+          </FieldRow>
+          <FieldRow k="alternativeLocality" dossier={dossier}
+            onSkip={(r) => skip("alternativeLocality", r)} onUnskip={() => unskip("alternativeLocality")}>
+            <Input value={dossier.alternativeLocality ?? ""}
+              placeholder="Fallback locality"
+              onChange={(e) => patch({ alternativeLocality: e.target.value })} />
+          </FieldRow>
+        </div>
+      </Section>
+
+      {/* NEW · Lifestyle — occupation, food, duration */}
+      <Section
+        title="Lifestyle"
+        subtitle="Food + stay-length + employer often decide the room."
+        banner={{
+          why: "Food / duration is a hard filter and a churn predictor.",
+          admin: "Segments veg-only demand + LTV forecast.",
+          tcm: "Skips non-matching properties on message #1.",
+          client: "No 'no veg' or wrong-lock-in surprise.",
+        }}
+      >
+        <div className="grid grid-cols-3 gap-3">
+          <FieldRow k="occupation" dossier={dossier}
+            onSkip={(r) => skip("occupation", r)} onUnskip={() => unskip("occupation")}>
+            <Input value={dossier.occupation ?? ""}
+              placeholder="Employer / college"
+              onChange={(e) => patch({ occupation: e.target.value })} />
+          </FieldRow>
+          <FieldRow k="foodPreference" dossier={dossier}
+            onSkip={(r) => skip("foodPreference", r)} onUnskip={() => unskip("foodPreference")}>
+            <Select value={dossier.foodPreference ?? ""} onValueChange={(v) => patch({ foodPreference: v as Dossier["foodPreference"] })}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="veg">Veg</SelectItem>
+                <SelectItem value="non-veg">Non-veg</SelectItem>
+                <SelectItem value="any">Any</SelectItem>
+              </SelectContent>
+            </Select>
+          </FieldRow>
+          <FieldRow k="duration" dossier={dossier}
+            onSkip={(r) => skip("duration", r)} onUnskip={() => unskip("duration")}>
+            <Select value={dossier.duration ?? ""} onValueChange={(v) => patch({ duration: v })}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1m">1 month</SelectItem>
+                <SelectItem value="3m">3 months</SelectItem>
+                <SelectItem value="6m">6 months</SelectItem>
+                <SelectItem value="12m">12 months</SelectItem>
+                <SelectItem value="long">Long-term (2y+)</SelectItem>
+                <SelectItem value="unsure">Unsure</SelectItem>
+              </SelectContent>
+            </Select>
+          </FieldRow>
+        </div>
+      </Section>
+
+      {/* NEW · Media sent — checkboxes proving what actually reached the lead */}
+      <Section
+        title="What we sent · shortlist"
+        subtitle="Track P1–P4 pitched + which assets landed. Halves 'we didn't get anything'."
+        banner={{
+          why: "Prevents re-sending and settles 'nothing was shared' disputes.",
+          admin: "Audit trail per lead per asset.",
+          tcm: "Never send the same PDF twice, always know what's next.",
+          client: "Not spammed the same PDF twice.",
+        }}
+      >
+        <div className="grid grid-cols-4 gap-3">
+          {(["p1", "p2", "p3", "p4"] as const).map((k) => (
+            <FieldRow key={k} k={k} dossier={dossier}
+              onSkip={(r) => skip(k, r)} onUnskip={() => unskip(k)}>
+              <Input value={(dossier[k] as string) ?? ""}
+                placeholder={`Property ${k.slice(1)}`}
+                onChange={(e) => patch({ [k]: e.target.value } as Partial<Dossier>)} />
+            </FieldRow>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {([
+            { k: "pdfSent",      label: "📄 PDF sent" },
+            { k: "videoSent",    label: "🎥 Video sent" },
+            { k: "locationSent", label: "📍 Location sent" },
+          ] as const).map((t) => {
+            const active = Boolean(dossier[t.k]);
+            return (
+              <button key={t.k} type="button"
+                onClick={() => patch({ [t.k]: !active } as Partial<Dossier>)}
+                className={cn(
+                  "text-[11px] px-2 py-1 rounded-full border transition inline-flex items-center gap-1",
+                  active
+                    ? "border-success/50 bg-success/10 text-success"
+                    : "border-border bg-background text-muted-foreground hover:bg-muted",
+                )}>
+                {active && <span className="text-[10px]">✓</span>}
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        <WhyCaption
+          why="Toggle after you actually send the asset — becomes the audit line."
+          admin="Every dispute has evidence."
+          tcm="See at a glance what's still to send."
+          client="One clean thread, no duplicate blasts."
+        />
+      </Section>
+
       <div>
         <Label className="text-xs">Notes / properties sent (P1, P2, P3, PDF, video)</Label>
         <Textarea rows={2} value={dossier.objectionNotes ?? ""}
           onChange={(e) => patch({ objectionNotes: e.target.value })}
           placeholder="e.g. Sent P1 Bliss + P2 Metrofield + PDF" />
+        <WhyCaption
+          why="Free-text catch-all for anything the structured fields don't cover."
+          admin="Searchable across the pipeline."
+          tcm="Fast dump; you can structure later."
+          client="Their exact ask stays intact for the next TCM."
+        />
       </div>
 
       <div className="flex items-center justify-between border-t pt-3">
@@ -320,14 +527,22 @@ export function DossierForm({ leadId }: Props) {
 /* ─────────── helpers ─────────── */
 
 function Section({
-  title, subtitle, children,
-}: { title: string; subtitle?: string; children: React.ReactNode }) {
+  title, subtitle, children, banner,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  banner?: { why: string; admin?: string; tcm?: string; client?: string };
+}) {
   return (
     <div className="space-y-2">
       <div>
         <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">{title}</div>
         {subtitle && <div className="text-[10px] text-muted-foreground/70">{subtitle}</div>}
       </div>
+      {banner && (
+        <WhySectionBanner title={title} why={banner.why} admin={banner.admin} tcm={banner.tcm} client={banner.client} />
+      )}
       {children}
     </div>
   );
@@ -346,6 +561,7 @@ function FieldRow({
   const status = dossierFieldStatus(dossier, k);
   const label = DOSSIER_FIELD_LABELS[k as string] ?? String(k);
   const skipReason = dossier.skipped?.[k as string];
+  const why = WHY_MAP[k as string];
 
   const Dot =
     status === "filled"  ? <CheckCircle2 className="h-3 w-3 text-success" />
@@ -378,6 +594,15 @@ function FieldRow({
         ) : null}
       </div>
       <div>{children}</div>
+      {why && (
+        <WhyCaption
+          compact
+          why={why.why}
+          admin={why.admin}
+          tcm={why.tcm}
+          client={why.client}
+        />
+      )}
     </div>
   );
 }
