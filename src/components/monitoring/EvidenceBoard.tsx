@@ -98,7 +98,7 @@ export function EvidenceBoard() {
               const isOpen = expanded === lead.ulid;
               const urgency = URGENCY_META[computeUrgencyBucket(state.dossier.moveDate)];
               return (
-                <>
+                <FragmentRow key={lead.ulid}>
                   <tr
                     key={lead.ulid}
                     className={cn(
