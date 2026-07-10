@@ -148,7 +148,7 @@ function MatchPanel({ leadId, onNext }: { leadId: string; onNext: () => void }) 
   );
 }
 
-function TourSchedulePanel({ initial, onSave, onConfirm }: {
+function TourSchedulePanel({ leadId, initial, onSave, onConfirm }: {
   leadId: string; initial: string;
   onSave: (date: string, coordinator: string, meetingPoint: string) => void;
   onConfirm: () => void;
@@ -171,7 +171,7 @@ function TourSchedulePanel({ initial, onSave, onConfirm }: {
   );
 }
 
-function PostVisitPanel({ onDecision }: { leadId: string; onDecision: (d: NonNullable<import("@/lib/pipeline/types").PipelineState["postVisit"]>["decision"]) => void }) {
+function PostVisitPanel({ leadId, onDecision }: { leadId: string; onDecision: (d: NonNullable<import("@/lib/pipeline/types").PipelineState["postVisit"]>["decision"]) => void }) {
   const options: { key: NonNullable<import("@/lib/pipeline/types").PipelineState["postVisit"]>["decision"]; label: string }[] = [
     { key: "liked", label: "Liked" },
     { key: "didnt-like", label: "Didn't like" },
@@ -193,7 +193,7 @@ function PostVisitPanel({ onDecision }: { leadId: string; onDecision: (d: NonNul
   );
 }
 
-function QuotePanel({ onSend }: { leadId: string; onSend: (amount: number, expiry: string, discount: number) => void }) {
+function QuotePanel({ leadId, onSend }: { leadId: string; onSend: (amount: number, expiry: string, discount: number) => void }) {
   const [amount, setAmount] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [hours, setHours] = useState("1");
@@ -223,7 +223,7 @@ function QuotePanel({ onSend }: { leadId: string; onSend: (amount: number, expir
   );
 }
 
-function BookingPanel({ onBook }: { leadId: string; onBook: (amount: number, ref: string, room: string) => void }) {
+function BookingPanel({ leadId, onBook }: { leadId: string; onBook: (amount: number, ref: string, room: string) => void }) {
   const [amount, setAmount] = useState(0);
   const [ref, setRef] = useState("");
   const [room, setRoom] = useState("");
