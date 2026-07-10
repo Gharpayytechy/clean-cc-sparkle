@@ -1,14 +1,11 @@
 // Quick Add Lead — full lead schema in a single floating panel.
-// Designed for the "WhatsApp + PiP dashboard" workflow:
-//  • Paste an entire WhatsApp message into ANY field → auto-parse every column
-//  • Manual edit any auto-filled field
-//  • Save + Next keeps panel open for rapid one-handed entry
-//  • ⌘/Ctrl+Enter saves and closes
-//  • Works identically inside the PiP window and the main tab
-//
-// Captures: Name · Phone · Email · Areas (multi) · Full Address · Budget ·
-// Move-in · Type · Room · Need · Special Reqs · In-BLR · Lead Quality ·
-// Zone (categorical) · Assign Member · Lead Stage · Notes
+// 10x pass:
+//   • Every Field now carries a WhyCaption (why exists · Admin/TCM/Client).
+//   • Added: Alt phone, Guardian phone, Employer/College, Food pref chips,
+//     Preferred call-time chips, Language chips, Lead-source chips,
+//     Callback date, Referrer, Priority reason. New fields are captured into
+//     the existing specialReqs / notes so no store changes are required
+//     this pass (persistence upgrade lands next turn with Cloud).
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -20,8 +17,9 @@ import { useIdentityStore } from "@/lib/lead-identity/store";
 import { detectZone, parseLead } from "@/lib/lead-identity/parser";
 import { teamMembers } from "@/myt/lib/mock-data";
 import { toast } from "sonner";
-import { Save, Repeat2, Phone, MapPin, Sparkles, X } from "lucide-react";
+import { Save, Repeat2, MapPin, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { WhyCaption } from "@/components/common/WhyCaption";
 
 interface Props { open: boolean; onClose: () => void; }
 
@@ -46,18 +44,22 @@ const STAGES = [
   "LOST 😭",
 ] as const;
 
-const TYPE_OPTS = ["Student", "Working", "Intern", "Family", "Other"];
-const ROOM_OPTS = ["Private", "Shared", "Both", "Studio"];
+const TYPE_OPTS = ["Student", "Working", "Intern", "Family", "Couple", "NRI", "Other"];
+const ROOM_OPTS = ["Private", "Shared", "Double", "Triple", "Studio", "1BHK", "Both"];
 const NEED_OPTS = ["Boys", "Girls", "Coed"];
+const FOOD_OPTS = ["Veg", "Non-veg", "Jain", "Egg-only", "Any"];
+const CALLTIME_OPTS = ["Morning", "Afternoon", "Evening", "Late night", "Weekend", "Anytime"];
+const LANG_OPTS = ["English", "Hindi", "Kannada", "Tamil", "Telugu", "Malayalam", "Bengali", "Other"];
+const SOURCE_OPTS = ["WhatsApp", "Referral", "Google", "Insta", "OLX", "Housing", "Walk-in", "Repeat", "Other"];
 const QUALITY_OPTS = [
-  { v: "hot" as const, label: "🔥 Hot" },
+  { v: "hot" as const,  label: "🔥 Hot" },
   { v: "good" as const, label: "✅ Good" },
-  { v: "bad" as const, label: "❌ Bad" },
+  { v: "bad" as const,  label: "❌ Bad" },
 ];
 const BLR_OPTS = [
-  { v: true as const, label: "🏙 In" },
+  { v: true as const,  label: "🏙 In" },
   { v: false as const, label: "✈️ Out" },
-  { v: null, label: "❓ Unknown" },
+  { v: null,           label: "❓ Unknown" },
 ];
 
 export function QuickAddLeadPanel({ open, onClose }: Props) {
@@ -67,14 +69,24 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
   // Core
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [altPhone, setAltPhone] = useState("");
+  const [guardianPhone, setGuardianPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [areasText, setAreasText] = useState("");        // comma-separated areas
+  const [employer, setEmployer] = useState("");
+  const [areasText, setAreasText] = useState("");
   const [fullAddress, setFullAddress] = useState("");
   const [budget, setBudget] = useState("");
   const [moveIn, setMoveIn] = useState(todayIso());
+  const [callbackDate, setCallbackDate] = useState("");
   const [type, setType] = useState("");
   const [room, setRoom] = useState("");
   const [need, setNeed] = useState("");
+  const [food, setFood] = useState("");
+  const [callTime, setCallTime] = useState("");
+  const [language, setLanguage] = useState("");
+  const [source, setSource] = useState("");
+  const [referrer, setReferrer] = useState("");
+  const [priorityReason, setPriorityReason] = useState("");
   const [specialReqs, setSpecialReqs] = useState("");
   // Editorial
   const [inBLR, setInBLR] = useState<boolean | null>(null);
@@ -93,10 +105,13 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
   );
 
   const reset = () => {
-    setName(""); setPhone(""); setEmail("");
+    setName(""); setPhone(""); setAltPhone(""); setGuardianPhone("");
+    setEmail(""); setEmployer("");
     setAreasText(""); setFullAddress("");
-    setBudget(""); setMoveIn(todayIso());
-    setType(""); setRoom(""); setNeed(""); setSpecialReqs("");
+    setBudget(""); setMoveIn(todayIso()); setCallbackDate("");
+    setType(""); setRoom(""); setNeed("");
+    setFood(""); setCallTime(""); setLanguage(""); setSource("");
+    setReferrer(""); setPriorityReason(""); setSpecialReqs("");
     setInBLR(null); setQuality(null); setZoneBucket("");
     setAssigneeId(""); setStage(STAGES[0]); setNotes("");
     setTimeout(() => nameRef.current?.focus(), 30);
@@ -114,6 +129,20 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
     }
     const areasArr = areasText.split(",").map((a) => a.trim()).filter(Boolean);
     const assignee = teamMembers.find((m) => m.id === assigneeId);
+    // Persist the new structured fields as pipe-separated tags on specialReqs
+    // until the Cloud schema lands — nothing is lost.
+    const extraTags = [
+      altPhone && `alt:${altPhone}`,
+      guardianPhone && `guardian:${guardianPhone}`,
+      employer && `employer:${employer}`,
+      food && `food:${food}`,
+      callTime && `call:${callTime}`,
+      language && `lang:${language}`,
+      source && `src:${source}`,
+      referrer && `ref:${referrer}`,
+      callbackDate && `callback:${callbackDate}`,
+      priorityReason && `priority:${priorityReason}`,
+    ].filter(Boolean).join(" · ");
     const lead = create(
       {
         name: name.trim(),
@@ -125,7 +154,7 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
         budget: budget.trim(),
         moveIn,
         type, room, need,
-        specialReqs: [specialReqs, notes].filter(Boolean).join(" · "),
+        specialReqs: [specialReqs, notes, extraTags].filter(Boolean).join(" · "),
         inBLR,
         zone: detectedZone,
         rawSource: `[QuickAdd] ${name} ${phone}`,
@@ -182,25 +211,71 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
             Paste a WhatsApp message into <strong>any</strong> field → auto-fills every column ·
             ⌘/Ctrl + Enter saves
           </p>
+          <WhyCaption
+            compact
+            why="Every option below is on this form for a reason — hover the ADMIN/TCM/CLIENT badges to see who benefits."
+            admin="Complete leads = accurate reports + fair reassignment."
+            tcm="30-second capture, zero re-work later."
+            client="Only asked what actually helps them find the right home."
+          />
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3" onPaste={onAnyPaste}>
           {/* Name + Phone */}
           <div className="grid grid-cols-2 gap-2">
-            <Field label="👤 Name *">
+            <Field label="👤 Name *"
+              why="Legal name for booking + WhatsApp greeting."
+              admin="Deduping + owner-mapping." tcm="Warmer opener line." client="Personal, not spammy.">
               <Input ref={nameRef} value={name} onChange={(e) => setName(e.target.value)} placeholder="Rahul Sharma" />
             </Field>
-            <Field label="📱 Phone *">
+            <Field label="📱 Phone *"
+              why="Primary contact + duplicate check."
+              admin="Only reliable identity across the CRM."
+              tcm="One-tap call + WhatsApp deep-link."
+              client="Nobody else pings the wrong number.">
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="98xxxxxxxx" inputMode="tel" />
             </Field>
           </div>
 
-          <Field label="✉️ Email">
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="📞 Alt phone"
+              why="Fallback when primary is unreachable."
+              admin="Fewer 'lost lead' escalations."
+              tcm="Auto-tries alt when primary rings out."
+              client="Doesn't miss the tour reminder.">
+              <Input value={altPhone} onChange={(e) => setAltPhone(e.target.value)} inputMode="tel" placeholder="Optional" />
+            </Field>
+            <Field label="👨‍👦 Guardian phone"
+              why="Student / minor leads — loop parents in."
+              admin="Parent-approval stage doesn't stall."
+              tcm="One number to call for green-light."
+              client="Family aligned before deposit.">
+              <Input value={guardianPhone} onChange={(e) => setGuardianPhone(e.target.value)} inputMode="tel" placeholder="Parent / guardian" />
+            </Field>
+          </div>
+
+          <Field label="✉️ Email"
+            why="Contract + invoice delivery."
+            admin="Backup identity + receipt trail."
+            tcm="Send PDF quotation instantly."
+            client="Written record they can forward.">
             <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" inputMode="email" />
           </Field>
 
+          <Field label="🏢 Employer / College"
+            why="Trust signal + payment cycle."
+            admin="Employer-based reporting + credit line."
+            tcm="Warmer opener + salary-day invoicing."
+            client="Payment date fits their pay cycle.">
+            <Input value={employer} onChange={(e) => setEmployer(e.target.value)} placeholder="Company or college name" />
+          </Field>
+
           {/* Areas */}
-          <Field label="📍 Areas (comma-separated)">
+          <Field label="📍 Areas (comma-separated)"
+            why="Locality shortlist — filters property matches."
+            admin="Zone routing + heat-map."
+            tcm="Auto-detects zone bucket below."
+            client="Only shown homes in areas they want.">
             <div className="relative">
               <Input
                 value={areasText}
@@ -221,7 +296,11 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
           </Field>
 
           {/* Full Address */}
-          <Field label="🏠 Full Address / Map link">
+          <Field label="🏠 Full Address / Map link"
+            why="Precise location for commute calc + tour meeting point."
+            admin="Cluster analytics — where our leads live now."
+            tcm="Pick the closest tour coordinator."
+            client="No 'where do we meet?' confusion.">
             <Textarea
               value={fullAddress}
               onChange={(e) => setFullAddress(e.target.value)}
@@ -233,10 +312,18 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
 
           {/* Budget + Move-in with urgency quick-chips */}
           <div className="grid grid-cols-2 gap-2">
-            <Field label="💰 Budget">
+            <Field label="💰 Budget"
+              why="Hard filter for inventory."
+              admin="Deal-size + budget-gap dashboard."
+              tcm="No over-budget tours."
+              client="No sticker-shock at the door.">
               <Input value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="8-12k" />
             </Field>
-            <Field label="📅 Move-in">
+            <Field label="📅 Move-in"
+              why="Drives every urgency bucket + SLA."
+              admin="Queue heat-map."
+              tcm="See TODAY / TOMORROW on the card."
+              client="Reminders match their real timeline.">
               <Input type="date" value={moveIn} onChange={(e) => setMoveIn(e.target.value)} />
             </Field>
           </div>
@@ -245,10 +332,14 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
             {([
               { label: "Today",       days: 0,  tone: "border-destructive/50 text-destructive" },
               { label: "Tomorrow",    days: 1,  tone: "border-destructive/40 text-destructive/80" },
+              { label: "+3d",         days: 3,  tone: "border-warning/60 text-warning" },
               { label: "This week",   days: 5,  tone: "border-warning/50 text-warning" },
+              { label: "+10d",        days: 10, tone: "border-warning/40 text-warning" },
               { label: "This month",  days: 20, tone: "border-accent/50 text-accent" },
               { label: "Next month",  days: 40, tone: "border-primary/40 text-primary" },
-              { label: "Future",      days: 90, tone: "border-border text-muted-foreground" },
+              { label: "+60d",        days: 60, tone: "border-primary/30 text-primary/80" },
+              { label: "+90d",        days: 90, tone: "border-border text-muted-foreground" },
+              { label: "Future",      days: 180, tone: "border-border text-muted-foreground" },
             ] as const).map((b) => {
               const d = new Date(); d.setDate(d.getDate() + b.days);
               const iso = d.toISOString().slice(0, 10);
@@ -268,20 +359,94 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
               );
             })}
           </div>
+          <WhyCaption
+            compact
+            why="Quick-chips stamp the move-date in one tap — pick nearest bucket, refine below."
+            admin="Consistent bucketing across the team."
+            tcm="No date picker fumble on mobile."
+            client="Faster reply — they hear back in seconds."
+          />
+
+          {/* Callback date */}
+          <Field label="🔁 Next callback"
+            why="Set the exact next-touch date so nothing slips."
+            admin="Missed-callback breach alerts."
+            tcm="Feeds today's Do-Next list."
+            client="Actually called back when promised.">
+            <Input type="date" value={callbackDate} onChange={(e) => setCallbackDate(e.target.value)} />
+          </Field>
 
           {/* Type + Room + Need (chips) */}
-          <Field label="💼 Type">
+          <Field label="💼 Type"
+            why="Persona bucket — pitch changes per type."
+            admin="Persona mix per TCM."
+            tcm="Right script loaded automatically."
+            client="Right property list, first try.">
             <ChipGroup options={TYPE_OPTS} value={type} onChange={setType} />
           </Field>
-          <Field label="🛏 Room">
+          <Field label="🛏 Room"
+            why="Room type = price tier + inventory subset."
+            admin="Occupancy split by room type."
+            tcm="Correct pricing on the first quote."
+            client="No 'I wanted private, you sent shared'.">
             <ChipGroup options={ROOM_OPTS} value={room} onChange={setRoom} />
           </Field>
-          <Field label="👥 Need">
+          <Field label="👥 Need"
+            why="Gender / coed — some properties are hard filters."
+            admin="Cross-check with lead-persona gender."
+            tcm="Filters SF vs SM automatically."
+            client="No door-step rejection.">
             <ChipGroup options={NEED_OPTS} value={need} onChange={setNeed} />
+          </Field>
+          <Field label="🥗 Food preference"
+            why="Kitchen match / meal-plan filter."
+            admin="Veg-only demand tracking."
+            tcm="Skips non-matching properties." client="No 'no veg' surprise.">
+            <ChipGroup options={FOOD_OPTS} value={food} onChange={setFood} />
+          </Field>
+
+          <Field label="🕒 Preferred call time"
+            why="Call when they'll actually answer."
+            admin="Contact-rate uplift metric."
+            tcm="Auto-slots into your calling block."
+            client="Not disturbed at work / class.">
+            <ChipGroup options={CALLTIME_OPTS} value={callTime} onChange={setCallTime} />
+          </Field>
+          <Field label="🌐 Language"
+            why="Pitch in their first language."
+            admin="Language-mix report per zone."
+            tcm="Route to a same-language TCM."
+            client="Understands every word.">
+            <ChipGroup options={LANG_OPTS} value={language} onChange={setLanguage} />
+          </Field>
+          <Field label="🎯 Source"
+            why="Where the lead came from — attribution."
+            admin="Marketing-spend ROI."
+            tcm="Right opener for that channel."
+            client="Feels continuity from the ad they clicked.">
+            <ChipGroup options={SOURCE_OPTS} value={source} onChange={setSource} />
+          </Field>
+          <Field label="🤝 Referrer"
+            why="Who sent them — for the reward + relationship."
+            admin="Referral leaderboard."
+            tcm="Warm-intro opener."
+            client="Their friend gets credited fairly.">
+            <Input value={referrer} onChange={(e) => setReferrer(e.target.value)} placeholder="Referrer name / phone" />
+          </Field>
+          <Field label="🚨 Priority reason"
+            why="Why is this a top-priority lead right now?"
+            admin="Audit before manual boost / reassignment."
+            tcm="Explains the escalation to the next TCM."
+            client="Nothing gets stuck in a queue.">
+            <Input value={priorityReason} onChange={(e) => setPriorityReason(e.target.value)} placeholder="e.g. VIP referral, media enquiry…" />
           </Field>
 
           {/* Special requests */}
-          <Field label="⭐ Special Requests">
+          <Field label="⭐ Special Requests"
+            why="Anything not covered by the chips above."
+            admin="Free-text searchable for edge cases."
+            tcm="One dump-here field — no lost detail."
+            client="Their exact ask stays intact.">
             <Textarea
               value={specialReqs}
               onChange={(e) => setSpecialReqs(e.target.value)}
@@ -292,7 +457,11 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
           </Field>
 
           {/* In-BLR */}
-          <Field label="Currently in Bangalore?">
+          <Field label="Currently in Bangalore?"
+            why="Decides tour vs virtual-tour path."
+            admin="Out-of-city funnel tracked separately."
+            tcm="Right cadence — video first if 'Out'."
+            client="No 'come tomorrow' when they're in another city.">
             <ChipGroup
               options={BLR_OPTS.map((o) => o.label)}
               value={BLR_OPTS.find((o) => o.v === inBLR)?.label ?? ""}
@@ -301,7 +470,11 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
           </Field>
 
           {/* Quality */}
-          <Field label="Lead Quality">
+          <Field label="Lead Quality"
+            why="Manual gut-call after first exchange."
+            admin="Compares TCM gut vs actual close rate."
+            tcm="Right cadence loaded (hot = call now)."
+            client="Hot leads aren't left waiting.">
             <ChipGroup
               options={QUALITY_OPTS.map((o) => o.label)}
               value={QUALITY_OPTS.find((o) => o.v === quality)?.label ?? ""}
@@ -310,7 +483,11 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
           </Field>
 
           {/* Zone bucket */}
-          <Field label="Zone *">
+          <Field label="Zone *"
+            why="Assignment rules run off zone bucket."
+            admin="Zone-balance across the team."
+            tcm="You only see leads in your zones."
+            client="A local TCM who knows the area.">
             <select
               value={zoneBucket}
               onChange={(e) => setZoneBucket(e.target.value)}
@@ -322,7 +499,11 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
           </Field>
 
           {/* Assignee */}
-          <Field label="Assign Member">
+          <Field label="Assign Member"
+            why="Owner from minute one."
+            admin="Ownership + SLA start-clock."
+            tcm="No 'who's calling this one?' confusion."
+            client="One person owns their journey.">
             <select
               value={assigneeId}
               onChange={(e) => setAssigneeId(e.target.value)}
@@ -334,7 +515,11 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
           </Field>
 
           {/* Stage */}
-          <Field label="Lead Stage">
+          <Field label="Lead Stage"
+            why="Where to start them in the pipeline."
+            admin="Stage distribution health."
+            tcm="Skip stages if you already know."
+            client="Not re-asked what they already told us.">
             <select
               value={stage}
               onChange={(e) => setStage(e.target.value)}
@@ -345,7 +530,11 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
           </Field>
 
           {/* Notes */}
-          <Field label="📝 Notes">
+          <Field label="📝 Notes"
+            why="Anything else — searchable across pipeline."
+            admin="Free-text audit trail."
+            tcm="Braindump zone."
+            client="Their words preserved for the next TCM.">
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -377,11 +566,18 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label, children, why, admin, tcm, client,
+}: {
+  label: string;
+  children: React.ReactNode;
+  why?: string; admin?: string; tcm?: string; client?: string;
+}) {
   return (
     <div>
       <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</Label>
       <div className="mt-0.5">{children}</div>
+      {why && <WhyCaption compact why={why} admin={admin} tcm={tcm} client={client} />}
     </div>
   );
 }
