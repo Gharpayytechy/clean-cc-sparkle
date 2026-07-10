@@ -174,7 +174,7 @@ export function EvidenceBoard() {
                       </td>
                     </tr>
                   )}
-                </>
+                </FragmentRow>
               );
             })}
           </tbody>
