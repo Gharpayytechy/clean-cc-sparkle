@@ -36,10 +36,12 @@ function MonitoringPage() {
           <TabsList>
             <TabsTrigger value="team">Team Dashboard</TabsTrigger>
             <TabsTrigger value="pipeline">Pipeline Health</TabsTrigger>
+            <TabsTrigger value="evidence">Evidence Board</TabsTrigger>
             <TabsTrigger value="activity">Raw Activity</TabsTrigger>
           </TabsList>
           <TabsContent value="team" className="mt-3"><TeamDashboard /></TabsContent>
           <TabsContent value="pipeline" className="mt-3"><StageMatrix /></TabsContent>
+          <TabsContent value="evidence" className="mt-3"><EvidenceBoard /></TabsContent>
           <TabsContent value="activity" className="mt-3"><ActivityLogTable /></TabsContent>
         </Tabs>
       </div>
