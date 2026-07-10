@@ -49,7 +49,7 @@ export function StagePanel({ leadId }: Props) {
       );
     case "TOUR_CONFIRMED":
       return (
-        <Card title="Tour confirmed — awaiting start">
+        <Card leadId={leadId} stage="TOUR_CONFIRMED" title="Tour confirmed — awaiting start">
           <p className="text-sm text-muted-foreground mb-3">
             Reminder cascade (24h/6h/2h/30m) auto-firing. When the lead reaches the property, mark started.
           </p>
@@ -61,7 +61,7 @@ export function StagePanel({ leadId }: Props) {
       );
     case "TOUR_IN_PROGRESS":
       return (
-        <Card title="Tour in progress">
+        <Card leadId={leadId} stage="TOUR_IN_PROGRESS" title="Tour in progress">
           <p className="text-sm text-muted-foreground mb-3">Live tour. Mark complete once all properties toured.</p>
           <Button onClick={() => {
             setTour(leadId, { completedAt: new Date().toISOString() });
@@ -89,7 +89,7 @@ export function StagePanel({ leadId }: Props) {
       );
     case "NEGOTIATION":
       return (
-        <Card title="Negotiation">
+        <Card leadId={leadId} stage="NEGOTIATION" title="Negotiation">
           <p className="text-sm text-muted-foreground mb-3">Track calls, discount requests, best offer. When booked, log payment.</p>
           <Button onClick={() => advanceStage(leadId, "BOOKED", actor)}>Advance to booking</Button>
         </Card>
@@ -105,7 +105,7 @@ export function StagePanel({ leadId }: Props) {
         }} />
       );
     case "CHECKED_IN":
-      return <Card title="Live tenant"><p className="text-sm">Lead has moved in. Capture NPS after 7 days.</p></Card>;
+      return <Card leadId={leadId} stage="CHECKED_IN" title="Live tenant"><p className="text-sm">Lead has moved in. Capture NPS after 7 days.</p></Card>;
     default:
       return null;
   }
@@ -132,7 +132,7 @@ function MatchPanel({ leadId, onNext }: { leadId: string; onNext: () => void }) 
   const user = useIdentityStore((s) => s.currentUser);
   const actor = { userId: user.id, userName: user.name };
   return (
-    <Card title="Pin P1 / P2 / P3">
+    <Card leadId={leadId} stage="MATCHED" title="Pin P1 / P2 / P3">
       <div className="grid grid-cols-3 gap-2 mb-3">
         {(["p1", "p2", "p3"] as const).map((k) => (
           <div key={k}>
@@ -157,7 +157,7 @@ function TourSchedulePanel({ initial, onSave, onConfirm }: {
   const [coord, setCoord] = useState("");
   const [mp, setMp] = useState("");
   return (
-    <Card title="Schedule tour">
+    <Card leadId={leadId} stage="TOUR_SCHEDULED" title="Schedule tour">
       <div className="grid grid-cols-3 gap-3 mb-3">
         <div><Label className="text-xs">Date & time</Label><Input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} /></div>
         <div><Label className="text-xs">Coordinator</Label><Input value={coord} onChange={(e) => setCoord(e.target.value)} /></div>
@@ -183,7 +183,7 @@ function PostVisitPanel({ onDecision }: { leadId: string; onDecision: (d: NonNul
     { key: "needs-alternative", label: "Needs alternative" },
   ];
   return (
-    <Card title="Post-visit — decision (mandatory, 15 min SLA)">
+    <Card leadId={leadId} stage="POST_VISIT" title="Post-visit — decision (mandatory, 15 min SLA)">
       <div className="grid grid-cols-2 gap-2">
         {options.map((o) => (
           <Button key={o.key} variant="outline" size="sm" onClick={() => onDecision(o.key)}>{o.label}</Button>
@@ -198,7 +198,7 @@ function QuotePanel({ onSend }: { leadId: string; onSend: (amount: number, expir
   const [discount, setDiscount] = useState(0);
   const [hours, setHours] = useState("1");
   return (
-    <Card title="Send quotation — 15-min SLA">
+    <Card leadId={leadId} stage="QUOTED" title="Send quotation — 15-min SLA">
       <div className="grid grid-cols-3 gap-3 mb-3">
         <div><Label className="text-xs">Amount</Label><Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} /></div>
         <div><Label className="text-xs">Discount</Label><Input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} /></div>
@@ -228,7 +228,7 @@ function BookingPanel({ onBook }: { leadId: string; onBook: (amount: number, ref
   const [ref, setRef] = useState("");
   const [room, setRoom] = useState("");
   return (
-    <Card title="Log booking">
+    <Card leadId={leadId} stage="BOOKED" title="Log booking">
       <div className="grid grid-cols-3 gap-3 mb-3">
         <div><Label className="text-xs">Booking amount</Label><Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} /></div>
         <div><Label className="text-xs">Payment ref</Label><Input value={ref} onChange={(e) => setRef(e.target.value)} /></div>
