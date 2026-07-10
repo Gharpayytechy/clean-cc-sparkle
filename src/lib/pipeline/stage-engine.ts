@@ -4,23 +4,39 @@ import type { Dossier, PipelineState, SlaState, StageGate } from "./types";
 const DOSSIER_FIELDS: (keyof Dossier)[] = [
   "moveDate", "budget", "area", "gender", "sharing",
   "movingFeasibility", "decisionMaker", "competition", "objection",
+  "closingExpectation", "goal", "leadPersona",
 ];
+
+export const DOSSIER_FIELD_KEYS = DOSSIER_FIELDS;
+
+function isFilled(d: Dossier, k: keyof Dossier): boolean {
+  const v = d[k];
+  if (v === undefined || v === null || v === "") return false;
+  if (Array.isArray(v) && v.length === 0) return false;
+  return true;
+}
 
 export function dossierCompletion(d: Dossier | undefined): number {
   if (!d) return 0;
-  const filled = DOSSIER_FIELDS.filter((k) => {
-    const v = d[k];
-    return v !== undefined && v !== null && v !== "";
-  }).length;
-  return Math.round((filled / DOSSIER_FIELDS.length) * 100);
+  const skipped = d.skipped ?? {};
+  const done = DOSSIER_FIELDS.filter((k) => isFilled(d, k) || skipped[k as string]).length;
+  return Math.round((done / DOSSIER_FIELDS.length) * 100);
 }
 
 export function missingDossierFields(d: Dossier | undefined): (keyof Dossier)[] {
   if (!d) return DOSSIER_FIELDS;
-  return DOSSIER_FIELDS.filter((k) => {
-    const v = d[k];
-    return v === undefined || v === null || v === "";
-  });
+  const skipped = d.skipped ?? {};
+  return DOSSIER_FIELDS.filter((k) => !isFilled(d, k) && !skipped[k as string]);
+}
+
+export function dossierFieldStatus(
+  d: Dossier | undefined,
+  k: keyof Dossier,
+): "filled" | "skipped" | "empty" {
+  if (!d) return "empty";
+  if (isFilled(d, k)) return "filled";
+  if (d.skipped?.[k as string]) return "skipped";
+  return "empty";
 }
 
 /** Can we advance from current stage → target stage? */
