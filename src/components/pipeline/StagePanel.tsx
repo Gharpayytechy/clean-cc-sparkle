@@ -2,6 +2,7 @@ import { usePipeline } from "@/lib/pipeline/store";
 import { useIdentityStore } from "@/lib/lead-identity/store";
 import { DossierTimer } from "./DossierTimer";
 import { DossierForm } from "./DossierForm";
+import { EvidenceStrip } from "./EvidenceStrip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
