@@ -111,10 +111,16 @@ export function StagePanel({ leadId }: Props) {
   }
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ leadId, stage, title, children }: {
+  leadId: string;
+  stage: import("@/lib/pipeline/stage-config").PipelineStage;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="text-sm font-semibold mb-2">{title}</div>
+    <div className="rounded-lg border bg-card p-4 space-y-3">
+      <EvidenceStrip leadId={leadId} stage={stage} />
+      <div className="text-sm font-semibold">{title}</div>
       {children}
     </div>
   );
