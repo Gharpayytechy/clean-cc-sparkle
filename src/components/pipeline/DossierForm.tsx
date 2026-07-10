@@ -20,8 +20,9 @@ import { CheckCircle2, Circle, MinusCircle, SkipForward, X } from "lucide-react"
 import type { Dossier } from "@/lib/pipeline/types";
 import {
   SIGNAL_PRESETS, CLOSING_EXPECTATIONS, GOAL_OPTIONS, LEAD_PERSONAS,
-  DOSSIER_FIELD_LABELS,
+  DOSSIER_FIELD_LABELS, QUICK_PRESETS,
 } from "@/lib/pipeline/dossier-presets";
+import { Zap } from "lucide-react";
 
 interface Props { leadId: string; }
 
@@ -34,6 +35,7 @@ type FieldKey = keyof Dossier;
 export function DossierForm({ leadId }: Props) {
   const dossier = usePipeline((s) => s.states[leadId]?.dossier ?? { completionPct: 0 } as Dossier);
   const updateDossier = usePipeline((s) => s.updateDossier);
+  const applyPreset = usePipeline((s) => s.applyDossierPreset);
   const advanceStage = usePipeline((s) => s.advanceStage);
   const user = useIdentityStore((s) => s.currentUser);
   const missing = missingDossierFields(dossier);
@@ -57,6 +59,26 @@ export function DossierForm({ leadId }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Quick-fill preset chips — one tap stamps 3-5 fields at once */}
+      <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-2.5 space-y-1.5">
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-primary font-semibold">
+          <Zap className="h-3 w-3" /> One-tap presets
+          <span className="text-muted-foreground/70 normal-case font-normal">· merges with what you've filled</span>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {QUICK_PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => applyPreset(leadId, p.patch, { userId: user.id, userName: user.name })}
+              className="text-[11px] px-2 py-1 rounded-md border border-border bg-background hover:bg-primary/10 hover:border-primary/40 transition inline-flex items-center gap-1"
+            >
+              <span>{p.emoji}</span>{p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Deal read — the "can we even close this?" section, up top */}
       <Section title="Deal read" subtitle="Set this before you call. If it's 'try nearby' — reassign.">
         <div className="grid grid-cols-2 gap-3">
@@ -126,6 +148,7 @@ export function DossierForm({ leadId }: Props) {
                       : "bg-background text-muted-foreground border-border hover:bg-muted",
                   )}>
                   <span>{p.emoji}</span>{p.label}
+                  <span className="text-[9px] px-1 rounded bg-muted-foreground/10 font-mono">{p.code}</span>
                 </button>
               );
             })}

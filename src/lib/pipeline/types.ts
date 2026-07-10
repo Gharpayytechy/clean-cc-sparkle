@@ -2,6 +2,18 @@ import type { PipelineStage } from "./stage-config";
 
 export type SlaState = "ok" | "warning" | "breached" | "escalated";
 
+export interface StageEvidence {
+  id: string;
+  url: string;          // data URL or hosted URL
+  fileName?: string;
+  mimeType?: string;
+  note?: string;
+  uploadedBy: string;
+  uploadedAt: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+}
+
 export interface StageGate {
   stage: PipelineStage;
   enteredAt: string;       // ISO
@@ -9,6 +21,8 @@ export interface StageGate {
   breached: boolean;
   completedFields: string[];
   managerOverride?: { by: string; reason: string; at: string };
+  evidence?: StageEvidence[];
+  evidenceRequested?: { by: string; at: string; reason?: string };
 }
 
 export interface Dossier {

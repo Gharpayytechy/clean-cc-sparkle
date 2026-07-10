@@ -231,7 +231,7 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
             />
           </Field>
 
-          {/* Budget + Move-in */}
+          {/* Budget + Move-in with urgency quick-chips */}
           <div className="grid grid-cols-2 gap-2">
             <Field label="💰 Budget">
               <Input value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="8-12k" />
@@ -239,6 +239,34 @@ export function QuickAddLeadPanel({ open, onClose }: Props) {
             <Field label="📅 Move-in">
               <Input type="date" value={moveIn} onChange={(e) => setMoveIn(e.target.value)} />
             </Field>
+          </div>
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide mr-1">When?</span>
+            {([
+              { label: "Today",       days: 0,  tone: "border-destructive/50 text-destructive" },
+              { label: "Tomorrow",    days: 1,  tone: "border-destructive/40 text-destructive/80" },
+              { label: "This week",   days: 5,  tone: "border-warning/50 text-warning" },
+              { label: "This month",  days: 20, tone: "border-accent/50 text-accent" },
+              { label: "Next month",  days: 40, tone: "border-primary/40 text-primary" },
+              { label: "Future",      days: 90, tone: "border-border text-muted-foreground" },
+            ] as const).map((b) => {
+              const d = new Date(); d.setDate(d.getDate() + b.days);
+              const iso = d.toISOString().slice(0, 10);
+              const active = moveIn === iso;
+              return (
+                <button
+                  key={b.label}
+                  type="button"
+                  onClick={() => setMoveIn(iso)}
+                  className={cn(
+                    "text-[10px] px-2 py-0.5 rounded-full border transition",
+                    active ? "bg-primary text-primary-foreground border-primary" : `bg-background ${b.tone} hover:bg-muted`,
+                  )}
+                >
+                  {b.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Type + Room + Need (chips) */}
