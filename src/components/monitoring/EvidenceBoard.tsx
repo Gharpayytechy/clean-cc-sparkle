@@ -1,7 +1,7 @@
 // Admin Evidence Board — per-lead × per-stage proof status matrix.
 // Managers can spot gaps ("this booking has no payment screenshot") and
 // request proof directly. TCMs get a red badge on the lead until they upload.
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useIdentityStore } from "@/lib/lead-identity/store";
 import { usePipeline } from "@/lib/pipeline/store";
 import { STAGE_ORDER, STAGE_CONFIG, type PipelineStage } from "@/lib/pipeline/stage-config";
