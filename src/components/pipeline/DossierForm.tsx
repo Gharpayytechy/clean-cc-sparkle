@@ -23,6 +23,7 @@ import {
   DOSSIER_FIELD_LABELS, QUICK_PRESETS, WHY_MAP,
 } from "@/lib/pipeline/dossier-presets";
 import { WhyCaption, WhySectionBanner } from "@/components/common/WhyCaption";
+import { LifecyclePanel } from "@/components/pipeline/LifecyclePanel";
 
 interface Props { leadId: string; }
 
@@ -520,6 +521,9 @@ export function DossierForm({ leadId }: Props) {
           Lock dossier → Property match
         </Button>
       </div>
+
+      {/* Lifecycle 15x — group composition, revival cycles, follow-ups, commitments, scenarios */}
+      <LifecyclePanel leadId={leadId} totalBudget={dossier.budget} />
     </div>
   );
 }
