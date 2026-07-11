@@ -23,6 +23,7 @@ import {
   DOSSIER_FIELD_LABELS, QUICK_PRESETS, WHY_MAP,
 } from "@/lib/pipeline/dossier-presets";
 import { WhyCaption, WhySectionBanner } from "@/components/common/WhyCaption";
+import { LifecyclePanel } from "@/components/pipeline/LifecyclePanel";
 
 interface Props { leadId: string; }
 
