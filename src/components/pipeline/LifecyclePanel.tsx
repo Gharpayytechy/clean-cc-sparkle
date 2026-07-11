@@ -3,6 +3,10 @@
 // Commitment Ledger · Automation Config · Scenario Packs.
 // Every control carries always-visible <WhyCaption> (why/admin/tcm/client).
 import { useMemo, useState } from "react";
+
+// Stable reference to avoid infinite renders in useSyncExternalStore selectors
+// that would otherwise return a fresh `[]` each read.
+const EMPTY_ARR: readonly never[] = [];
 import {
   useLifecycle, roomFit, next7Touches, commitmentHealth,
   GROUP_COMPOSITIONS, REVIVAL_REASON_LABELS, CLOSE_REASON_LABELS,
@@ -56,7 +60,7 @@ export function LifecyclePanel({ leadId, totalBudget }: Props) {
 const ROLES: GroupRole[] = ["primary", "co-mover", "guardian", "spouse", "roommate-hunt", "employer-payer", "referrer"];
 
 function GroupSection({ leadId, totalBudget }: { leadId: string; totalBudget?: number }) {
-  const members = useLifecycle((s) => s.members[leadId] ?? []);
+  const members = useLifecycle((s) => s.members[leadId]) ?? EMPTY_ARR;
   const addMember = useLifecycle((s) => s.addMember);
   const updateMember = useLifecycle((s) => s.updateMember);
   const dropOut = useLifecycle((s) => s.dropOutMember);
@@ -219,7 +223,7 @@ const REUSE_OPTIONS = [
 ];
 
 function CyclesSection({ leadId }: { leadId: string }) {
-  const cycles = useLifecycle((s) => s.cycles[leadId] ?? []);
+  const cycles = useLifecycle((s) => s.cycles[leadId]) ?? EMPTY_ARR;
   const ensureCycle = useLifecycle((s) => s.ensureCycle);
   const closeCycle = useLifecycle((s) => s.closeCycle);
   const reviveCycle = useLifecycle((s) => s.reviveCycle);
@@ -351,8 +355,8 @@ function CyclesSection({ leadId }: { leadId: string }) {
 // ─────────────────── Next-7 Touches ────────────────────
 
 function Next7Section({ leadId }: { leadId: string }) {
-  const touches = useLifecycle((s) => s.touches[leadId] ?? []);
-  const cycles = useLifecycle((s) => s.cycles[leadId] ?? []);
+  const touches = useLifecycle((s) => s.touches[leadId]) ?? EMPTY_ARR;
+  const cycles = useLifecycle((s) => s.cycles[leadId]) ?? EMPTY_ARR;
   const schedule = useLifecycle((s) => s.scheduleTouches);
   const skipTouch = useLifecycle((s) => s.skipTouch);
   const markTouch = useLifecycle((s) => s.markTouch);
@@ -417,8 +421,8 @@ const COMMITMENT_TYPES: CommitmentType[] = [
 ];
 
 function CommitmentSection({ leadId }: { leadId: string }) {
-  const commitments = useLifecycle((s) => s.commitments[leadId] ?? []);
-  const cycles = useLifecycle((s) => s.cycles[leadId] ?? []);
+  const commitments = useLifecycle((s) => s.commitments[leadId]) ?? EMPTY_ARR;
+  const cycles = useLifecycle((s) => s.cycles[leadId]) ?? EMPTY_ARR;
   const addCommitment = useLifecycle((s) => s.addCommitment);
   const mark = useLifecycle((s) => s.markCommitment);
   const health = useMemo(() => commitmentHealth(commitments), [commitments]);
@@ -608,8 +612,8 @@ const SCENARIO_GROUPS: Array<{ title: string; packs: Array<{ key: ScenarioPack; 
 ];
 
 function ScenarioSection({ leadId }: { leadId: string }) {
-  const cycles = useLifecycle((s) => s.cycles[leadId] ?? []);
-  const flags = useLifecycle((s) => s.scenarios[leadId] ?? []);
+  const cycles = useLifecycle((s) => s.cycles[leadId]) ?? EMPTY_ARR;
+  const flags = useLifecycle((s) => s.scenarios[leadId]) ?? EMPTY_ARR;
   const flag = useLifecycle((s) => s.flagScenario);
   const resolve = useLifecycle((s) => s.resolveScenario);
   const open = cycles.find((c) => !c.closedAt);
