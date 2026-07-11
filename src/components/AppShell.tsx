@@ -78,6 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const navByRole: Record<typeof role, NavItem[]> = {
     hr: [
+      { to: "/os", label: "Closing OS", icon: Sparkles, accent: true },
       { to: "/coach", label: "Coach", icon: Sparkles, accent: true },
       { to: "/today", label: "Today", icon: Sun, badge: queue.length },
       { to: "/execution", label: "Execution", icon: Zap, accent: true },
@@ -106,6 +107,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/help", label: "How to use", icon: HelpCircle },
     ],
     "flow-ops": [
+      { to: "/os", label: "Closing OS", icon: Sparkles, accent: true },
       { to: "/coach", label: "Coach", icon: Sparkles, accent: true },
       { to: "/today", label: "Today", icon: Sun, badge: queue.length },
       { to: "/execution", label: "Execution", icon: Zap, accent: true },
@@ -131,6 +133,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/help", label: "How to use", icon: HelpCircle },
     ],
     tcm: [
+      { to: "/os", label: "Closing OS", icon: Sparkles, accent: true },
       { to: "/coach", label: "Coach", icon: Sparkles, accent: true },
       { to: "/today", label: "Today", icon: Sun, badge: queue.length },
       { to: "/execution", label: "Execution", icon: Zap, accent: true },
