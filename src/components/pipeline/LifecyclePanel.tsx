@@ -3,6 +3,10 @@
 // Commitment Ledger · Automation Config · Scenario Packs.
 // Every control carries always-visible <WhyCaption> (why/admin/tcm/client).
 import { useMemo, useState } from "react";
+
+// Stable reference to avoid infinite renders in useSyncExternalStore selectors
+// that would otherwise return a fresh `[]` each read.
+const EMPTY_ARR: readonly never[] = [];
 import {
   useLifecycle, roomFit, next7Touches, commitmentHealth,
   GROUP_COMPOSITIONS, REVIVAL_REASON_LABELS, CLOSE_REASON_LABELS,
