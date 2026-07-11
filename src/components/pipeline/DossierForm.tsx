@@ -521,6 +521,9 @@ export function DossierForm({ leadId }: Props) {
           Lock dossier → Property match
         </Button>
       </div>
+
+      {/* Lifecycle 15x — group composition, revival cycles, follow-ups, commitments, scenarios */}
+      <LifecyclePanel leadId={leadId} totalBudget={dossier.budget} />
     </div>
   );
 }
