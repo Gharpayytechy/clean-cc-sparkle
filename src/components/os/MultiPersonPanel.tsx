@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, UserPlus, AlertTriangle, Users } from "lucide-react";
-import type { DecisionPower, PayResponsibility, PersonRelation, OsPerson } from "@/lib/os/types";
+import type { DecisionPower, PayResponsibility, PersonRelation, OsPerson, OsGroup } from "@/lib/os/types";
 
 const RELATIONS: PersonRelation[] = ["self","friend","partner","spouse","sibling","parent","guardian","roommate","colleague","manager","hr-poc","other"];
 const POWERS: DecisionPower[] = ["final","strong","influencer","user"];
@@ -50,7 +50,7 @@ export function MultiPersonPanel({ leadId }: { leadId: string }) {
         </label>
         <label className="space-y-1">
           <span className="text-muted-foreground">Group type</span>
-          <Select value={group?.groupType ?? ""} onValueChange={(v) => setGroupMeta(leadId, { groupType: v as OsPerson["relation"] extends never ? never : any })}>
+          <Select value={group?.groupType ?? ""} onValueChange={(v) => setGroupMeta(leadId, { groupType: v as OsGroup["groupType"] })}>
             <SelectTrigger><SelectValue placeholder="pick" /></SelectTrigger>
             <SelectContent>
               {["solo","friends","couple","married","family","office","students","startup","mixed"].map((t) => (
