@@ -17,6 +17,7 @@ import { Route as SequencesRouteImport } from './routes/sequences'
 import { Route as RevivalRouteImport } from './routes/revival'
 import { Route as RevenueRouteImport } from './routes/revenue'
 import { Route as QueueRouteImport } from './routes/queue'
+import { Route as OsRouteImport } from './routes/os'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as ManagerRouteImport } from './routes/manager'
 import { Route as LeadsRouteImport } from './routes/leads'
@@ -110,6 +111,11 @@ const RevenueRoute = RevenueRouteImport.update({
 const QueueRoute = QueueRouteImport.update({
   id: '/queue',
   path: '/queue',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OsRoute = OsRouteImport.update({
+  id: '/os',
+  path: '/os',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MonitoringRoute = MonitoringRouteImport.update({
@@ -400,6 +406,7 @@ export interface FileRoutesByFullPath {
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
   '/monitoring': typeof MonitoringRoute
+  '/os': typeof OsRoute
   '/queue': typeof QueueRoute
   '/revenue': typeof RevenueRoute
   '/revival': typeof RevivalRoute
@@ -464,6 +471,7 @@ export interface FileRoutesByTo {
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
   '/monitoring': typeof MonitoringRoute
+  '/os': typeof OsRoute
   '/queue': typeof QueueRoute
   '/revenue': typeof RevenueRoute
   '/revival': typeof RevivalRoute
@@ -529,6 +537,7 @@ export interface FileRoutesById {
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
   '/monitoring': typeof MonitoringRoute
+  '/os': typeof OsRoute
   '/queue': typeof QueueRoute
   '/revenue': typeof RevenueRoute
   '/revival': typeof RevivalRoute
@@ -595,6 +604,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/manager'
     | '/monitoring'
+    | '/os'
     | '/queue'
     | '/revenue'
     | '/revival'
@@ -659,6 +669,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/manager'
     | '/monitoring'
+    | '/os'
     | '/queue'
     | '/revenue'
     | '/revival'
@@ -723,6 +734,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/manager'
     | '/monitoring'
+    | '/os'
     | '/queue'
     | '/revenue'
     | '/revival'
@@ -788,6 +800,7 @@ export interface RootRouteChildren {
   LeadsRoute: typeof LeadsRouteWithChildren
   ManagerRoute: typeof ManagerRoute
   MonitoringRoute: typeof MonitoringRoute
+  OsRoute: typeof OsRoute
   QueueRoute: typeof QueueRoute
   RevenueRoute: typeof RevenueRoute
   RevivalRoute: typeof RevivalRoute
@@ -888,6 +901,13 @@ declare module '@tanstack/react-router' {
       path: '/queue'
       fullPath: '/queue'
       preLoaderRoute: typeof QueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/os': {
+      id: '/os'
+      path: '/os'
+      fullPath: '/os'
+      preLoaderRoute: typeof OsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/monitoring': {
@@ -1323,6 +1343,7 @@ const rootRouteChildren: RootRouteChildren = {
   LeadsRoute: LeadsRouteWithChildren,
   ManagerRoute: ManagerRoute,
   MonitoringRoute: MonitoringRoute,
+  OsRoute: OsRoute,
   QueueRoute: QueueRoute,
   RevenueRoute: RevenueRoute,
   RevivalRoute: RevivalRoute,
@@ -1369,12 +1390,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
