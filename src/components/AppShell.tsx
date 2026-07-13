@@ -115,6 +115,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/myt/flow-ops", label: "Flow Ops", icon: LayoutDashboard },
       { to: "/calendar", label: "Calendar", icon: Calendar },
       { to: "/leads", label: "Leads", icon: Target },
+      { to: "/zones", label: "Zone Roles", icon: Users, accent: true },
+      { to: "/leads/add", label: "Reassign Console", icon: Inbox, accent: true },
       { to: "/myt/leads", label: "MYT Leads", icon: Target },
       { to: "/myt/schedule", label: "Schedule Tour", icon: CalendarPlus },
       { to: "/myt/properties", label: "Properties", icon: Building2 },
