@@ -88,6 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/myt/funnel", label: "Funnel", icon: Activity },
       { to: "/myt/team", label: "Team", icon: Users },
       { to: "/myt/zones", label: "Zones", icon: MapPin },
+      { to: "/zones", label: "Zone Roles", icon: Users, accent: true },
       { to: "/myt/owners-compare", label: "Owners", icon: ShieldCheck },
       { to: "/supply-hub", label: "Supply Hub", icon: Layers, accent: true },
       { to: "/supply-hub/match", label: "Lead Matcher", icon: Sparkles },
