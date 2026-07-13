@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { DirectLeadForm } from "@/components/leads/DirectLeadForm";
-import { RequestAccessSheet } from "@/components/leads/RequestAccessSheet";
+import { ReassignConsole } from "@/components/leads/ReassignConsole";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIdentityStore } from "@/lib/lead-identity/store";
 import { Shield } from "lucide-react";
@@ -33,10 +33,10 @@ function AddLeadPage() {
         <Tabs defaultValue="single" className="space-y-4">
           <TabsList>
             <TabsTrigger value="single">Single lead</TabsTrigger>
-            <TabsTrigger value="requests">Access requests</TabsTrigger>
+            <TabsTrigger value="requests">Reassign & duplicates</TabsTrigger>
           </TabsList>
           <TabsContent value="single"><DirectLeadForm /></TabsContent>
-          <TabsContent value="requests"><RequestAccessSheet /></TabsContent>
+          <TabsContent value="requests"><ReassignConsole /></TabsContent>
         </Tabs>
       </div>
     </AppShell>
