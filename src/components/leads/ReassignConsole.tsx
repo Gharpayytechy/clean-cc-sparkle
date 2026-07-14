@@ -110,6 +110,10 @@ export function ReassignConsole() {
         </p>
       </header>
 
+      <ReassignAdminOps />
+
+
+
       <div className="flex flex-wrap gap-2 items-center">
         <div className="flex items-center gap-1">
           {(["incoming", "outgoing", "duplicates", "all"] as Tab[]).map((t) => (
