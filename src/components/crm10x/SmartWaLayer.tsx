@@ -88,8 +88,6 @@ export function SmartWaLayer({ lead }: { lead: Lead }) {
       loggedBy: lead.assignedTcmId,
     });
     // Auto-register a live chat session so the dock shows "Chat live" right now.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { beginLiveIfEnabled } = require("@/lib/live-activity") as typeof import("@/lib/live-activity");
     beginLiveIfEnabled({
       leadId: lead.id,
       leadName: lead.name,
