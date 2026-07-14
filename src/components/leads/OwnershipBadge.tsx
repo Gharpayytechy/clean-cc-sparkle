@@ -1,8 +1,9 @@
 import { useIdentityStore } from "@/lib/lead-identity/store";
 import type { UnifiedLead } from "@/lib/lead-identity/types";
 import { Button } from "@/components/ui/button";
-import { Shield, UserPlus, Lock, Eye } from "lucide-react";
+import { Shield, UserPlus, Lock, Eye, Handshake, CircleDot } from "lucide-react";
 import { toast } from "sonner";
+import { useLiveActivity } from "@/lib/live-activity";
 
 interface Props {
   lead: UnifiedLead;
