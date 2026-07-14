@@ -301,6 +301,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </kbd>
           </button>
           <div className="ml-auto flex items-center gap-2">
+            <LiveActivityDock />
             <PipButton />
             <NotificationCenter role={role} />
             <ProfileMenu />
