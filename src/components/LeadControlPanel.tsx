@@ -21,6 +21,7 @@ import { PostVisitGate } from "./crm10x/PostVisitGate";
 import { CommitmentBanner } from "./crm10x/CommitmentBanner";
 import { ObjectionTag } from "./crm10x/ObjectionLogger";
 import { LeadDossierPanel } from "./crm10x/LeadDossierPanel";
+import { LeadLiveStrip } from "./live/LeadLiveStrip";
 import {
   Phone, MessageSquare, Calendar as CalendarIcon, Tag, ClipboardCheck,
   AlertTriangle, CheckCircle2, X, Activity as ActivityIcon, MapPin,
