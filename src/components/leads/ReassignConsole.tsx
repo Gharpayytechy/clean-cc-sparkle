@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { Inbox, Check, X, Search, UserPlus, ArrowRightLeft, Zap, Filter } from "lucide-react";
+import { ReassignAdminOps } from "@/components/admin/ReassignAdminOps";
 
 type Tab = "incoming" | "outgoing" | "duplicates" | "all";
 
@@ -108,6 +109,10 @@ export function ReassignConsole() {
           Bulk-approve, redirect, or reassign in a couple of clicks. Duplicate leads surface their siblings so you can merge ownership fast.
         </p>
       </header>
+
+      <ReassignAdminOps />
+
+
 
       <div className="flex flex-wrap gap-2 items-center">
         <div className="flex items-center gap-1">

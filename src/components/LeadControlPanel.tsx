@@ -22,6 +22,7 @@ import { CommitmentBanner } from "./crm10x/CommitmentBanner";
 import { ObjectionTag } from "./crm10x/ObjectionLogger";
 import { LeadDossierPanel } from "./crm10x/LeadDossierPanel";
 import { LeadLiveStrip } from "./live/LeadLiveStrip";
+import { LeadAdminStrip } from "./admin/LeadAdminStrip";
 import {
   Phone, MessageSquare, Calendar as CalendarIcon, Tag, ClipboardCheck,
   AlertTriangle, CheckCircle2, X, Activity as ActivityIcon, MapPin,
@@ -142,6 +143,7 @@ export function LeadControlPanel() {
 
         {/* Per-lead Live Activity Dock — calls, chats, claim & work */}
         <LeadLiveStrip lead={lead} />
+        <LeadAdminStrip lead={lead} />
 
         {/* CRM 10x — commitment banner + 48h post-visit gate */}
         <CommitmentBanner lead={lead} />
