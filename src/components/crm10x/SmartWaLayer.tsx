@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PGS as PG_LIST } from "@/supply-hub/data/pgs";
+import { beginLiveIfEnabled } from "@/lib/live-activity";
 
 /**
  * Smart WhatsApp Layer — auto-suggests the right template per lead state,
