@@ -143,6 +143,7 @@ export function LeadControlPanel() {
 
         {/* Per-lead Live Activity Dock — calls, chats, claim & work */}
         <LeadLiveStrip lead={lead} />
+        <LeadAdminStrip lead={lead} />
 
         {/* CRM 10x — commitment banner + 48h post-visit gate */}
         <CommitmentBanner lead={lead} />
