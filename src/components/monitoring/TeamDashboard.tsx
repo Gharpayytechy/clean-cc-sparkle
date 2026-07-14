@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 /**
  * 30-min per-teammate dashboard. Detects inactive teammates and stuck stages.
  */
-export function TeamDashboard() {
+export function TeamDashboard({ onSelect }: { onSelect?: (tcmId: string) => void } = {}) {
   useAutomationTicker(30_000);
   const activities = useMonitoring((s) => s.activities);
 
