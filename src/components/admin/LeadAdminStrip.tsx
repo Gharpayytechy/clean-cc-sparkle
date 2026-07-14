@@ -95,9 +95,9 @@ export function LeadAdminStrip({ lead }: { lead: Lead }) {
     toast.success("Manager notified");
   };
   const requestAllEvidence = () => {
-    (pipeline?.gates ? Object.entries(pipeline.gates) : []).forEach(([stage, g]) => {
-      if (!g?.evidence || g.evidence.length === 0) {
-        requestEvidence(lead.id, stage as never, "admin", "bulk admin request");
+    gates.forEach((g) => {
+      if (!g.evidence || g.evidence.length === 0) {
+        requestEvidence(lead.id, g.stage, "admin", "bulk admin request");
       }
     });
     toast.warning(`Evidence requested on ${evidenceGaps} stage${evidenceGaps === 1 ? "" : "s"}`);
