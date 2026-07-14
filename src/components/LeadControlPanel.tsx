@@ -140,6 +140,9 @@ export function LeadControlPanel() {
           <div className="text-[11px] text-muted-foreground">Assigned · {tcm?.name ?? "—"} ({tcm?.zone ?? "—"})</div>
         </SheetHeader>
 
+        {/* Per-lead Live Activity Dock — calls, chats, claim & work */}
+        <LeadLiveStrip lead={lead} />
+
         {/* CRM 10x — commitment banner + 48h post-visit gate */}
         <CommitmentBanner lead={lead} />
         <PostVisitGate lead={lead} />
