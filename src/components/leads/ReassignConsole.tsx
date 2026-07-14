@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { Inbox, Check, X, Search, UserPlus, ArrowRightLeft, Zap, Filter } from "lucide-react";
+import { ReassignAdminOps } from "@/components/admin/ReassignAdminOps";
 
 type Tab = "incoming" | "outgoing" | "duplicates" | "all";
 
