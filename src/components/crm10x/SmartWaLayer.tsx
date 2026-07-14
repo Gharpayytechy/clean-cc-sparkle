@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PGS as PG_LIST } from "@/supply-hub/data/pgs";
+import { beginLiveIfEnabled } from "@/lib/live-activity";
 
 /**
  * Smart WhatsApp Layer — auto-suggests the right template per lead state,
@@ -85,6 +86,15 @@ export function SmartWaLayer({ lead }: { lead: Lead }) {
       stage,
       language: lang,
       loggedBy: lead.assignedTcmId,
+    });
+    // Auto-register a live chat session so the dock shows "Chat live" right now.
+    beginLiveIfEnabled({
+      leadId: lead.id,
+      leadName: lead.name,
+      channel: "chat",
+      actorId: lead.assignedTcmId,
+      actorName: agent?.name ?? "TCM",
+      note: `${WA_TEMPLATES[stage].label} · ${lang}`,
     });
     sendMessage(lead.id, `[${WA_TEMPLATES[stage].label} · ${lang}] sent`);
     toast.success("WhatsApp opened — reply tracker enabled", {

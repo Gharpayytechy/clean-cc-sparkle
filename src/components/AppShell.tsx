@@ -22,6 +22,7 @@ import { useEffect, useMemo } from "react";
 import { PictureInPictureProvider, PipMount, usePip } from "./pip/PipProvider";
 import { PipButton } from "./pip/PipButton";
 import { usePipRouteSync } from "./pip/usePipSync";
+import { LiveActivityDock } from "./live/LiveActivityDock";
 
 function PipRouteSyncBridge() {
   const { active } = usePip();
@@ -301,6 +302,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </kbd>
           </button>
           <div className="ml-auto flex items-center gap-2">
+            <LiveActivityDock />
             <PipButton />
             <NotificationCenter role={role} />
             <ProfileMenu />
