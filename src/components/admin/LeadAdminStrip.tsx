@@ -48,10 +48,9 @@ export function LeadAdminStrip({ lead }: { lead: Lead }) {
   const activeClaims = leadClaims.filter((c) => c.state === "active");
   const leadSessions = sessions.filter((s) => s.leadId === lead.id);
   const missed = leadSessions.filter((s) => s.state === "missed").length;
-  const evidenceCount = (pipeline?.gates ? Object.values(pipeline.gates) : [])
-    .reduce((n, g) => n + ((g?.evidence?.length ?? 0)), 0);
-  const evidenceGaps = (pipeline?.gates ? Object.entries(pipeline.gates) : [])
-    .filter(([, g]) => !g?.evidence || g.evidence.length === 0).length;
+  const gates = pipeline?.history ?? [];
+  const evidenceCount = gates.reduce((n, g) => n + (g.evidence?.length ?? 0), 0);
+  const evidenceGaps = gates.filter((g) => !g.evidence || g.evidence.length === 0).length;
 
   // Duplicate siblings — by phone or email
   const duplicates = useMemo(() => {
