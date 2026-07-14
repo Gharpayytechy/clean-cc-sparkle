@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { KpiStrip } from "@/components/monitoring/KpiStrip";
@@ -5,6 +6,7 @@ import { TeamDashboard } from "@/components/monitoring/TeamDashboard";
 import { StageMatrix } from "@/components/monitoring/StageMatrix";
 import { ActivityLogTable } from "@/components/monitoring/ActivityLogTable";
 import { EvidenceBoard } from "@/components/monitoring/EvidenceBoard";
+import { AdminDrilldownDrawer } from "@/components/admin/AdminDrilldownDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/monitoring")({
@@ -20,13 +22,14 @@ export const Route = createFileRoute("/monitoring")({
 });
 
 function MonitoringPage() {
+  const [drilldown, setDrilldown] = useState<string | null>(null);
   return (
     <AppShell>
       <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-display font-semibold">Command Center</h1>
           <p className="text-sm text-muted-foreground">
-            Live 30-second refresh · every action tracked · execute or intervene.
+            Live 30-second refresh · every action tracked · click a teammate to drill down.
           </p>
         </div>
 
@@ -39,12 +42,17 @@ function MonitoringPage() {
             <TabsTrigger value="evidence">Evidence Board</TabsTrigger>
             <TabsTrigger value="activity">Raw Activity</TabsTrigger>
           </TabsList>
-          <TabsContent value="team" className="mt-3"><TeamDashboard /></TabsContent>
+          <TabsContent value="team" className="mt-3">
+            <TeamDashboard onSelect={setDrilldown} />
+          </TabsContent>
           <TabsContent value="pipeline" className="mt-3"><StageMatrix /></TabsContent>
           <TabsContent value="evidence" className="mt-3"><EvidenceBoard /></TabsContent>
           <TabsContent value="activity" className="mt-3"><ActivityLogTable /></TabsContent>
         </Tabs>
+
+        <AdminDrilldownDrawer tcmId={drilldown} onClose={() => setDrilldown(null)} />
       </div>
     </AppShell>
   );
 }
+
