@@ -125,10 +125,38 @@ export function LeadLiveStrip({ lead }: { lead: Lead }) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-          {autoTrack.call ? <Mic className="h-3 w-3 text-accent" /> : <Mic className="h-3 w-3 opacity-30" />}
-          {autoTrack.chat ? <MessageCircle className="h-3 w-3 text-accent" /> : <MessageCircle className="h-3 w-3 opacity-30" />}
-          <span>auto-track</span>
+        <div className="flex items-center gap-1 text-[10px]">
+          <span className="text-muted-foreground uppercase tracking-wider font-semibold mr-0.5">auto-track</span>
+          <button
+            onClick={() => { toggleAutoTrack("call"); toast.success(`Auto-track calls ${!autoTrack.call ? "ON" : "OFF"}`); }}
+            aria-pressed={autoTrack.call}
+            title={`Auto-track calls · ${autoTrack.call ? "ON" : "OFF"}`}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 transition-colors",
+              autoTrack.call
+                ? "border-accent/50 bg-accent/10 text-accent"
+                : "border-border bg-muted/40 text-muted-foreground opacity-60 hover:opacity-100",
+            )}
+          >
+            <Phone className="h-3 w-3" />
+            <span className="font-semibold">Call</span>
+            {autoTrack.call && <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />}
+          </button>
+          <button
+            onClick={() => { toggleAutoTrack("chat"); toast.success(`Auto-track chats ${!autoTrack.chat ? "ON" : "OFF"}`); }}
+            aria-pressed={autoTrack.chat}
+            title={`Auto-track WhatsApp · ${autoTrack.chat ? "ON" : "OFF"}`}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 transition-colors",
+              autoTrack.chat
+                ? "border-accent/50 bg-accent/10 text-accent"
+                : "border-border bg-muted/40 text-muted-foreground opacity-60 hover:opacity-100",
+            )}
+          >
+            <MessageCircle className="h-3 w-3" />
+            <span className="font-semibold">WA</span>
+            {autoTrack.chat && <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />}
+          </button>
         </div>
       </div>
 
