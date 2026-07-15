@@ -30,6 +30,7 @@ export function LeadLiveStrip({ lead }: { lead: Lead }) {
   const isOwner = lead.assignedTcmId === currentTcmId;
 
   const autoTrack = useLiveActivity((s) => s.autoTrack);
+  const toggleAutoTrack = useLiveActivity((s) => s.toggleAutoTrack);
   const sessions = useLiveActivity((s) => s.sessions);
   const claims = useLiveActivity((s) => s.claims);
   const startSession = useLiveActivity((s) => s.startSession);
