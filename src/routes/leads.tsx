@@ -1,9 +1,18 @@
+import * as XLSX from "xlsx";
+import { Button } from "@/components/ui/button";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useApp } from "@/lib/store";
 import { ConfidenceBar, IntentChip, StageBadge } from "@/components/atoms";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import type { LeadStage } from "@/lib/types";
@@ -11,7 +20,13 @@ import { useMountedNow } from "@/hooks/use-now";
 
 export const Route = createFileRoute("/leads")({
   head: () => ({
-    meta: [{ title: "Leads — Gharpayy" }, { name: "description", content: "Every lead, ranked by deal probability, one click into the control panel." }],
+    meta: [
+      { title: "Leads — Gharpayy" },
+      {
+        name: "description",
+        content: "Every lead, ranked by deal probability, one click into the control panel.",
+      },
+    ],
   }),
   component: LeadsPage,
 });
@@ -25,7 +40,8 @@ function LeadsPage() {
 
   const filtered = useMemo(() => {
     const list = leads.filter((l) => {
-      if (q && !l.name.toLowerCase().includes(q.toLowerCase()) && !l.phone.includes(q)) return false;
+      if (q && !l.name.toLowerCase().includes(q.toLowerCase()) && !l.phone.includes(q))
+        return false;
       if (stage !== "all" && l.stage !== stage) return false;
       return true;
     });
@@ -37,35 +53,114 @@ function LeadsPage() {
     return list;
   }, [leads, q, stage, sortBy]);
 
+  const exportToExcel = () => {
+    const data = filtered.map((lead) => ({
+      Name: lead.name,
+      Phone: lead.phone,
+      Stage: lead.stage,
+      Intent: lead.intent,
+      Confidence: lead.confidence,
+      Area: lead.preferredArea,
+      Budget: lead.budget,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+    XLSX.writeFile(workbook, "Leads.xlsx");
+  };
+
+  const totalLeads = leads.length;
+
+  const bookedLeads = leads.filter((lead) => lead.stage === "booked").length;
+
+  const negotiationLeads = leads.filter((lead) => lead.stage === "negotiation").length;
+
+  const droppedLeads = leads.filter((lead) => lead.stage === "dropped").length;
+
   return (
     <AppShell>
       <div className="space-y-4">
         <header className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight">Leads</h1>
-            <p className="text-sm text-muted-foreground">{filtered.length} of {leads.length} · ranked by deal probability</p>
+            <p className="text-sm text-muted-foreground">
+              {filtered.length} of {leads.length} · ranked by deal probability
+            </p>
           </div>
+
           <div className="flex items-center gap-2 flex-wrap">
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or phone…" className="h-9 w-56 text-sm" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search name or phone…"
+              className="h-9 w-56 text-sm"
+            />
+
             <Select value={stage} onValueChange={setStage}>
-              <SelectTrigger className="h-9 w-44 text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 w-44 text-sm">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All stages</SelectItem>
-                {(["new","contacted","tour-scheduled","tour-done","negotiation","booked","dropped"] as LeadStage[]).map((s) => (
-                  <SelectItem key={s} value={s} className="capitalize">{s.replace("-", " ")}</SelectItem>
+                {(
+                  [
+                    "new",
+                    "contacted",
+                    "tour-scheduled",
+                    "tour-done",
+                    "negotiation",
+                    "booked",
+                    "dropped",
+                  ] as LeadStage[]
+                ).map((s) => (
+                  <SelectItem key={s} value={s} className="capitalize">
+                    {s.replace("-", " ")}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-              <SelectTrigger className="h-9 w-44 text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 w-44 text-sm">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="confidence">Sort: Confidence</SelectItem>
                 <SelectItem value="moveIn">Sort: Move-in date</SelectItem>
                 <SelectItem value="updated">Sort: Last updated</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* 👇 New Button */}
+            <Button onClick={exportToExcel} className="h-9">
+              Export Excel
+            </Button>
           </div>
         </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="border rounded-lg p-4 bg-white shadow-sm">
+            <h3 className="text-gray-500 text-sm">Total Leads</h3>
+            <p className="text-3xl font-bold">{totalLeads}</p>
+          </div>
+
+          <div className="border rounded-lg p-4 bg-green-50 shadow-sm">
+            <h3 className="text-green-600 text-sm">Booked</h3>
+            <p className="text-3xl font-bold text-green-700">{bookedLeads}</p>
+          </div>
+
+          <div className="border rounded-lg p-4 bg-yellow-50 shadow-sm">
+            <h3 className="text-yellow-600 text-sm">Negotiation</h3>
+            <p className="text-3xl font-bold text-yellow-700">{negotiationLeads}</p>
+          </div>
+
+          <div className="border rounded-lg p-4 bg-red-50 shadow-sm">
+            <h3 className="text-red-600 text-sm">Dropped</h3>
+            <p className="text-3xl font-bold text-red-700">{droppedLeads}</p>
+          </div>
+        </div>
 
         <div className="rounded-xl border border-border bg-card overflow-hidden">
           <div className="grid grid-cols-12 px-4 py-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-border bg-muted/40">
@@ -87,9 +182,27 @@ function LeadsPage() {
                   >
                     <div className="col-span-3">
                       <div className="font-medium text-sm">{l.name}</div>
-                      <div className="text-[11px] text-muted-foreground">{l.phone} · {l.source}</div>
+
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <span>
+                          {l.phone} · {l.source}
+                        </span>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(l.phone);
+                            alert("Phone Number Copied!");
+                          }}
+                          className="rounded border px-2 py-0.5 text-[10px] text-blue-600 hover:bg-blue-50"
+                        >
+                          Copy
+                        </button>
+                      </div>
                     </div>
-                    <div className="col-span-2"><StageBadge stage={l.stage} /></div>
+                    <div className="col-span-2">
+                      <StageBadge stage={l.stage} />
+                    </div>
                     <div className="col-span-2 flex items-center gap-2">
                       <IntentChip intent={l.intent} />
                       <ConfidenceBar value={l.confidence} />
@@ -103,7 +216,9 @@ function LeadsPage() {
                       <div className="text-muted-foreground">{tcm?.zone ?? "—"}</div>
                     </div>
                     <div className="col-span-1 text-right text-[11px] text-muted-foreground">
-                      {mounted ? formatDistanceToNow(new Date(l.updatedAt), { addSuffix: true }) : "—"}
+                      {mounted
+                        ? formatDistanceToNow(new Date(l.updatedAt), { addSuffix: true })
+                        : "—"}
                     </div>
                   </button>
                 </div>
